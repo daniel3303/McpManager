@@ -1,0 +1,6 @@
+data/
+.idea/
+bin/
+obj/
+node_modules/
+*.user
