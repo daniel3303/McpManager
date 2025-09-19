@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <PackageId>McpManager.Core.Identity</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\McpManager.Core.Repositories\McpManager.Core.Repositories.csproj" />
+    </ItemGroup>
+
+</Project>
