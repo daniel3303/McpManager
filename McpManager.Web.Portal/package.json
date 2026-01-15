@@ -1,0 +1,35 @@
+{
+    "name": "mcpmanager.web.portal",
+    "version": "1.0.0",
+    "description": "",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "start": "vite build --watch",
+        "build": "vite build"
+    },
+    "author": "Daniel Oliveira",
+    "license": "ISC",
+    "dependencies": {
+        "@popperjs/core": "^2.11.6",
+        "@toast-ui/editor": "^3.2.2",
+        "apexcharts": "^5.3.6",
+        "autonumeric": "^4.10.9",
+        "flatpickr": "^4.6.13",
+        "html5sortable": "^0.14.0",
+        "inputmask": "^5.0.9",
+        "jquery": "^3.6.1",
+        "jquery-validation": "^1.19.5",
+        "jquery-validation-unobtrusive": "^4.0.0",
+        "moment": "^2.30.1",
+        "toastr": "^2.1.4",
+        "tom-select": "^2.4.3"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.1.18",
+        "daisyui": "^5.5.14",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.1.18",
+        "vite": "^6.0.0"
+    }
+}
