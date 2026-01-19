@@ -1,0 +1,552 @@
+/* Tailwind CSS v4 & DaisyUI v5 */
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Scan Views and TagHelpers for Tailwind classes */
+@source "../../Views";
+@source "../../TagHelpers";
+
+/* Safelist dynamically generated classes (HeroIcons TagHelper) */
+@source inline("size-1 size-2 size-3 size-4 size-5 size-6 size-7 size-8 size-10 size-12 size-16");
+
+/* Custom DaisyUI Theme */
+@plugin "daisyui/theme" {
+  name: "mcpmanager";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-primary: oklch(63% 0.16 50);
+  --color-primary-content: oklch(98% 0 0);
+  --color-secondary: oklch(50% 0.2 145);
+  --color-secondary-content: oklch(98% 0 0);
+  --color-accent: oklch(35% 0.12 195);
+  --color-accent-content: oklch(98% 0 0);
+  --color-neutral: oklch(25% 0.01 260);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(97% 0.005 260);
+  --color-base-300: oklch(93% 0.005 260);
+  --color-base-content: oklch(25% 0.01 260);
+  --color-info: oklch(75% 0.15 200);
+  --color-info-content: oklch(15% 0 0);
+  --color-success: oklch(55% 0.2 145);
+  --color-success-content: oklch(98% 0 0);
+  --color-warning: oklch(80% 0.18 85);
+  --color-warning-content: oklch(15% 0 0);
+  --color-error: oklch(55% 0.25 25);
+  --color-error-content: oklch(98% 0 0);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Custom DaisyUI Dark Theme */
+@plugin "daisyui/theme" {
+  name: "mcpmanager-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-primary: oklch(63% 0.16 50);
+  --color-primary-content: oklch(98% 0 0);
+  --color-secondary: oklch(55% 0.2 145);
+  --color-secondary-content: oklch(98% 0 0);
+  --color-accent: oklch(45% 0.12 195);
+  --color-accent-content: oklch(98% 0 0);
+  --color-neutral: oklch(25% 0.01 260);
+  --color-neutral-content: oklch(90% 0 0);
+  --color-base-100: oklch(22% 0.01 260);
+  --color-base-200: oklch(18% 0.01 260);
+  --color-base-300: oklch(15% 0.01 260);
+  --color-base-content: oklch(90% 0.005 260);
+  --color-info: oklch(70% 0.15 200);
+  --color-info-content: oklch(15% 0 0);
+  --color-success: oklch(55% 0.2 145);
+  --color-success-content: oklch(98% 0 0);
+  --color-warning: oklch(75% 0.18 85);
+  --color-warning-content: oklch(15% 0 0);
+  --color-error: oklch(55% 0.25 25);
+  --color-error-content: oklch(98% 0 0);
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Tailwind theme extension */
+@theme {
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* ================================================
+   GLOBAL STYLES
+   ================================================ */
+
+a {
+  @apply no-underline;
+}
+
+/* ================================================
+   SIDEBAR MENU
+   ================================================ */
+
+/* Hide default DaisyUI menu arrow for details/summary */
+.menu details > summary::after {
+  @apply hidden;
+}
+
+/* ================================================
+   BUTTONS
+   ================================================ */
+
+/* Ghost buttons with border for better visibility */
+.btn-ghost:not(.btn-circle):not(.btn-square) {
+  @apply border border-base-300;
+}
+
+/* ================================================
+   FORMS
+   ================================================ */
+
+/* Hide number spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Compact fieldset spacing - reduce top margin only */
+.fieldset {
+  @apply pt-0;
+}
+
+/* ASP.NET validation */
+.input-validation-error {
+  @apply border-error;
+}
+
+.field-validation-error {
+  @apply block mt-1 text-error text-sm;
+}
+
+.validation-summary-errors {
+  @apply block;
+}
+
+/* Read-only inputs */
+input[readonly],
+textarea[readonly],
+select[disabled] {
+  @apply bg-base-200 cursor-not-allowed opacity-70;
+}
+
+/* ================================================
+   AUTH PAGES
+   ================================================ */
+
+#auth-layout {
+  @apply bg-base-200 min-h-screen flex items-center justify-center p-4;
+}
+
+#auth-layout .auth-content {
+  @apply bg-base-100 p-12 rounded-lg border border-base-300 w-[420px];
+}
+
+#auth-layout .auth-input {
+  @apply w-full h-10 px-3 text-sm border border-base-300 rounded-md;
+  @apply focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary;
+}
+
+#auth-layout .auth-btn {
+  @apply w-full h-10 text-sm font-medium bg-neutral text-neutral-content rounded-md hover:bg-neutral/90 disabled:opacity-50;
+}
+
+/* ================================================
+   MVC GRID
+   ================================================ */
+
+.mvc-grid {
+  @apply relative overflow-x-auto leading-normal;
+}
+
+.mvc-grid .table th,
+.mvc-grid .table td {
+  @apply align-middle;
+}
+
+.mvc-grid .table .table-td-content {
+  @apply max-w-xs h-fit flex;
+}
+
+/* Sortable column header styling */
+.mvc-grid th.sortable {
+  @apply cursor-pointer select-none;
+}
+
+/* Sort button styling */
+.mvc-grid .mvc-grid-sort {
+  @apply text-base-content/50;
+}
+
+/* Active sort state */
+.mvc-grid th.asc .mvc-grid-sort,
+.mvc-grid th.desc .mvc-grid-sort {
+  @apply text-primary;
+}
+
+/* Sort icons: show only the relevant icon based on sort state */
+.mvc-grid .mvc-grid-sort .sort-asc,
+.mvc-grid .mvc-grid-sort .sort-desc {
+  @apply hidden;
+}
+
+.mvc-grid .mvc-grid-sort .sort-none {
+  @apply inline-flex;
+}
+
+.mvc-grid .asc .mvc-grid-sort .sort-none,
+.mvc-grid .desc .mvc-grid-sort .sort-none {
+  @apply hidden;
+}
+
+.mvc-grid .asc .mvc-grid-sort .sort-asc {
+  @apply inline-flex;
+}
+
+.mvc-grid .desc .mvc-grid-sort .sort-desc {
+  @apply inline-flex;
+}
+
+.mvc-grid tr.totals td {
+  @apply bg-base-200 text-base-content/60 font-semibold italic;
+}
+
+.mvc-grid-hidden {
+  @apply hidden;
+}
+
+.mvc-grid-table {
+  overflow-y: auto;
+}
+
+.mvc-grid-table > table {
+  @apply border-collapse max-w-full w-full;
+}
+
+.mvc-grid-table > table > thead > tr > th {
+  @apply bg-base-200 relative;
+  background-clip: padding-box;
+}
+
+.mvc-grid-table > table > thead > tr > th,
+.mvc-grid-table > table > tbody > tr > td,
+.mvc-grid-table > table > tfoot > tr > td {
+  @apply border border-base-300 p-2;
+}
+
+.mvc-grid-table .sortable {
+  @apply cursor-pointer;
+}
+
+.mvc-grid-options {
+  @apply hidden;
+}
+
+.mvc-grid-title {
+  @apply inline-block flex-1;
+}
+
+.mvc-grid-sort,
+.mvc-grid-filter {
+  @apply border-none cursor-pointer transition-colors flex-shrink-0;
+}
+
+.mvc-grid-row-filters .filterable {
+  @apply p-1;
+}
+
+.mvc-grid-row-filters th div {
+  @apply flex;
+}
+
+.mvc-grid-row-filters .mvc-grid-value {
+  @apply border border-base-300 bg-base-100 flex-1 mr-1 px-2 font-medium;
+}
+
+.mvc-grid-row-filters .mvc-grid-value.invalid {
+  @apply border-error outline-error;
+}
+
+.mvc-grid-row-filters .mvc-grid-filter {
+  @apply border border-base-300 static h-8 w-8;
+}
+
+
+.mvc-grid-popup {
+  @apply absolute bg-base-100 border border-base-300 rounded-box shadow-lg z-[1100] m-4 min-w-48;
+}
+
+.mvc-grid-popup .popup-content {
+  @apply p-2;
+}
+
+.mvc-grid-popup .popup-actions {
+  @apply text-center py-2;
+}
+
+.mvc-grid-popup .mvc-grid-value,
+.mvc-grid-popup .mvc-grid-method,
+.mvc-grid-popup .mvc-grid-operator {
+  @apply input input-sm w-full;
+}
+
+.mvc-grid-popup .mvc-grid-apply {
+  @apply btn btn-success btn-sm mr-1;
+}
+
+.mvc-grid-popup .mvc-grid-cancel {
+  @apply btn btn-error btn-sm ml-1;
+}
+
+.mvc-grid-pager,
+.mvc-grid-empty-row {
+  @apply text-center;
+}
+
+.mvc-grid-pager button {
+  @apply btn btn-sm btn-ghost border border-base-300 min-w-8 mx-0.5;
+}
+
+.mvc-grid-pager .active {
+  @apply btn-primary border-primary;
+}
+
+.mvc-grid-pager [disabled] {
+  @apply btn-disabled;
+}
+
+.mvc-grid-page-sizes {
+  @apply inline-block ml-2;
+}
+
+.mvc-grid-loader {
+  @apply mx-auto h-6 w-6;
+}
+
+.mvc-grid-spinner {
+  @apply animate-spin border-2 border-base-300 border-t-base-content rounded-full h-full w-full;
+}
+
+/* Grid actions - inline icon buttons */
+.grid-actions {
+  @apply flex items-center gap-0.5;
+}
+
+.grid-action-btn {
+  @apply p-1.5 rounded-lg text-base-content/40 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer inline-flex items-center relative;
+  @apply bg-transparent border border-base-300;
+}
+
+.grid-action-btn.grid-action-danger {
+  @apply hover:text-error hover:bg-error/10;
+}
+
+.grid-action-btn.grid-action-warning {
+  @apply hover:text-warning hover:bg-warning/10;
+}
+
+/* Tooltip on hover */
+.grid-action-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  @apply absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 px-2 py-1 text-xs font-medium rounded-md shadow-lg whitespace-nowrap;
+  @apply bg-neutral text-neutral-content;
+  @apply opacity-0 invisible transition-all duration-150 pointer-events-none;
+}
+
+.grid-action-btn[data-tooltip]:hover::after {
+  @apply opacity-100 visible;
+}
+
+/* Enhanced row hover effect */
+.mvc-grid tbody tr:hover {
+  @apply bg-primary/5;
+}
+
+/* Form confirm inline */
+.form-confirm.inline {
+  @apply inline;
+}
+
+/* ================================================
+   FORM LABELS - Darker for better readability
+   ================================================ */
+
+.label,
+.label-text,
+.fieldset-legend {
+  @apply text-base-content/80 font-medium text-xs;
+}
+
+/* ================================================
+   FORM INPUTS - Darker borders
+   ================================================ */
+
+.input,
+.select,
+.textarea {
+  --input-color: color-mix(in oklab, var(--color-base-content) 35%, transparent);
+}
+
+/* ================================================
+   TOM SELECT - Match DaisyUI Input Style
+   ================================================ */
+
+/* Base wrapper */
+.ts-wrapper {
+  @apply w-full;
+  --input-color: color-mix(in oklab, var(--color-base-content) 35%, transparent);
+}
+
+/* Control area - matches DaisyUI input */
+.ts-wrapper .ts-control {
+  @apply bg-base-100 rounded-[var(--radius-field)];
+  @apply text-base-content text-sm font-normal;
+  @apply flex items-center flex-wrap gap-1;
+  border: var(--border) solid var(--input-color);
+  box-shadow: 0 1px color-mix(in oklab, var(--input-color) calc(var(--depth) * 10%), transparent) inset,
+              0 -1px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset;
+  height: calc(var(--size-field, 0.25rem) * 10);
+  padding-inline: 0.75rem;
+}
+
+/* Focus state - matches DaisyUI input focus */
+.ts-wrapper.focus .ts-control {
+  --input-color: color-mix(in oklab, var(--color-base-content) 35%, transparent);
+  border-color: var(--input-color) !important;
+  box-shadow: none !important;
+  outline: 2px solid var(--input-color) !important;
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.ts-wrapper.disabled .ts-control {
+  @apply bg-base-200 cursor-not-allowed;
+  border-color: var(--color-base-200);
+  color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+  box-shadow: none;
+}
+
+/* Selected item */
+.ts-wrapper .ts-control .item {
+  @apply bg-transparent text-base-content font-normal p-0 m-0 border-none;
+}
+
+/* Placeholder */
+.ts-wrapper .ts-control input::placeholder {
+  @apply text-base-content/50;
+}
+
+/* Remove default input styling inside control */
+.ts-wrapper .ts-control > input {
+  @apply text-base-content text-sm;
+}
+
+/* Dropdown */
+.ts-dropdown {
+  @apply bg-base-100 rounded-[var(--radius-box)] shadow-lg mt-1;
+  @apply z-[1100];
+  border: var(--border) solid var(--input-color);
+}
+
+/* Dropdown content */
+.ts-dropdown-content {
+  @apply p-1;
+}
+
+/* Dropdown option */
+.ts-dropdown .option {
+  @apply px-3 py-3 text-sm text-base-content rounded-md cursor-pointer;
+}
+
+/* Option hover */
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+  @apply bg-base-200 text-base-content;
+}
+
+/* No results */
+.ts-dropdown .ts-no-results {
+  @apply px-3 py-2 text-sm text-base-content/50 text-center;
+}
+
+/* Optgroup header */
+.ts-dropdown .optgroup-header {
+  @apply px-3 py-1.5 text-xs font-semibold text-base-content/50 uppercase tracking-wider;
+}
+
+/* Indent options inside optgroups */
+.ts-dropdown .optgroup .option {
+  @apply pl-6;
+}
+
+/* Separator between optgroups */
+.ts-dropdown .optgroup + .optgroup {
+  @apply border-t border-base-200 mt-1 pt-1;
+}
+
+/* Clear button */
+.ts-wrapper .ts-control .clear-button {
+  @apply text-base-content/50 hover:text-error transition-colors;
+}
+
+/* Remove button on multi-select items */
+.ts-wrapper.multi .ts-control .item .remove {
+  @apply text-base-content/50 hover:text-error ml-1;
+}
+
+/* Multi-select items */
+.ts-wrapper.multi .ts-control .item {
+  @apply bg-base-200 text-base-content text-xs px-2 py-1 rounded-md;
+}
+
+/* Dropdown input (search) */
+.ts-wrapper .ts-dropdown .ts-dropdown-content .dropdown-input-wrap {
+  @apply p-2;
+  border-bottom: var(--border) solid var(--input-color);
+}
+
+.ts-wrapper .ts-dropdown input {
+  @apply w-full bg-base-100 rounded-md px-3 py-2 text-sm;
+  border: var(--border) solid var(--input-color);
+}
+
+.ts-wrapper .ts-dropdown input:focus {
+  --input-color: var(--color-base-content);
+  outline: 2px solid var(--input-color);
+  outline-offset: 2px;
+}
+
+/* Validation error state */
+.ts-wrapper.input-validation-error .ts-control {
+  --input-color: var(--color-error);
+}
+
+.ts-wrapper.input-validation-error.focus .ts-control {
+  --input-color: var(--color-error);
+}
