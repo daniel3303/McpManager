@@ -1,0 +1,9 @@
+@using McpManager.Core.Data.Models.Identity
+@using McpManager.Web.Portal.Extensions
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<User> UserManager
+
+@{
+    Layout = "_Layout";
+    ViewBag.User = await UserManager.FindByIdAsync(User.GetUserId().ToString());
+}
