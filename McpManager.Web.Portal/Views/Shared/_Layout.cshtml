@@ -1,0 +1,406 @@
+@using McpManager.Core.Data.Models.Identity
+@using McpManager.Core.Repositories
+@using McpManager.Web.Portal.Services
+@inject IServiceProvider ServiceProvider
+
+@{
+    var user = ViewData["User"] as User;
+    var displayDate = DateTime.Now.ToString("dd MMMM") + " de " + DateTime.Now.Year;
+}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="@(user?.Theme == Theme.Dark ? "mcpmanager-dark" : "mcpmanager")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MCP Manager</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/dist/main.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", false)
+</head>
+<body class="bg-base-200 min-h-screen">
+    <partial name="_FlashMessages" />
+    <div id="main-drawer" class="drawer @(user?.SidebarCollapsed != true ? "lg:drawer-open" : "")">
+        <input id="drawer-toggle" type="checkbox" class="drawer-toggle" />
+
+        <div class="drawer-content flex flex-col">
+            @Html.AntiForgeryToken()
+
+            <!-- Top navbar -->
+            <div class="navbar bg-base-100 border-b border-base-200 px-4 lg:px-6 sticky top-0 z-30">
+                <div class="flex-none lg:hidden">
+                    <label for="drawer-toggle" class="btn btn-square btn-ghost">
+                        <icon name="bars-3" size="5" />
+                    </label>
+                </div>
+                <div class="flex-none hidden lg:block">
+                    <button id="sidebar-expand" type="button" class="btn btn-square btn-ghost @(user?.SidebarCollapsed == true ? "" : "hidden")" title="Expand sidebar">
+                        <icon name="bars-3" size="5" />
+                    </button>
+                </div>
+                <!-- Page title -->
+                <h1 class="text-lg font-medium flex items-center gap-2 ml-2 truncate">
+                    @Html.Raw(ViewData["Icon"])
+                    <span class="hidden sm:inline">@ViewData["Title"]</span>
+                </h1>
+                <div class="flex-1"></div>
+                <!-- Page actions -->
+                <div class="flex items-center gap-2">
+                    @await RenderSectionAsync("PageActions", required: false)
+                </div>
+                <!-- Divider and time/date display -->
+                <div class="border-l border-base-300 h-8 mx-4"></div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <div id="Time" class="text-sm font-medium text-base-content">
+                            @DateTime.Now.ToString("HH:mm")
+                        </div>
+                        <div id="Data" class="text-xs text-base-content/60">
+                            @displayDate
+                        </div>
+                    </div>
+                    <!-- Notification dropdown -->
+                    <partial name="_NotificationDropdown" />
+                    <!-- Theme toggle -->
+                    <button id="theme-toggle" type="button" class="btn btn-ghost btn-sm btn-square" title="Toggle dark mode">
+                        <icon name="sun" size="5" class="theme-icon-sun @(user?.Theme != Theme.Dark ? "!hidden" : "")" />
+                        <icon name="moon" size="5" class="theme-icon-moon @(user?.Theme == Theme.Dark ? "!hidden" : "")" />
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page content -->
+            <main class="flex-1 p-4 lg:p-6">
+                <div class="card bg-base-100 shadow-sm">
+                    <div class="card-body p-4 lg:p-6">
+                        @RenderBody()
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="drawer-side z-40">
+            <label for="drawer-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+            <aside class="bg-base-100 w-64 min-h-screen flex flex-col border-r border-base-200">
+                <!-- Logo -->
+                <div class="p-4 flex items-center justify-between">
+                    <a asp-action="Index" asp-controller="Home" class="text-primary">
+                        <partial name="_Logo" />
+                    </a>
+                    <button id="sidebar-collapse" type="button" class="btn btn-ghost btn-sm btn-square hidden lg:flex" title="Collapse sidebar">
+                        <icon name="chevron-double-left" size="5" />
+                    </button>
+                </div>
+
+                <!-- Navigation menu -->
+                <nav class="flex-1 overflow-y-auto px-3 py-4">
+                    @foreach (var menuSection in Sidebar.GetSections()) {
+                        <div class="mb-4">
+                            <div class="text-xs font-semibold text-base-content/50 uppercase tracking-wider px-3 mb-2">
+                                @menuSection.Name
+                            </div>
+                            <ul class="menu w-full p-0 gap-1 [&_li>*]:gap-3">
+                                @foreach (var menuItem in menuSection.Items) {
+                                    var badges = new List<int>();
+                                    foreach (var subMenuItem in menuItem.SubMenus) {
+                                        var badge = 0;
+                                        if (subMenuItem.Badge != null) {
+                                            badge = await subMenuItem.Badge(ServiceProvider);
+                                        }
+                                        badges.Add(badge);
+                                    }
+
+                                    if (menuItem.Badge != null) {
+                                        badges.Add(await menuItem.Badge(ServiceProvider));
+                                    }
+
+                                    var isSelected = (ViewData["Menu"]?.ToString() ?? "---") == menuItem.Controller ||
+                                                   menuItem.SubMenus.Any(s => (ViewData["Menu"]?.ToString() ?? "---") == s.Controller ||
+                                                                              (ViewData["Menu"]?.ToString() ?? "---") == s.Menu);
+                                    var totalBadge = badges.DefaultIfEmpty(0).Sum();
+
+                                    if (menuItem.SubMenus.Any()) {
+                                        <li>
+                                            <details @(isSelected ? "open" : "")>
+                                                <summary class="text-sm @(isSelected ? "active font-medium" : "font-normal")">
+                                                    <icon name="@(string.IsNullOrEmpty(menuItem.Icon) ? "circle" : menuItem.Icon)" size="4" />
+                                                    @menuItem.Name
+                                                    @if (totalBadge > 0) {
+                                                        <span class="badge badge-primary badge-sm ml-auto">@totalBadge</span>
+                                                    }
+                                                    <icon name="chevron-up-down" size="4" class="ml-auto text-base-content/50" />
+                                                </summary>
+                                                <ul class="before:!bg-primary">
+                                                    @for (var index = 0; index < menuItem.SubMenus.Count; index++) {
+                                                        var subMenuItem = menuItem.SubMenus[index];
+                                                        var isSubSelected = (ViewData["Menu"]?.ToString() ?? "---") == subMenuItem.Menu &&
+                                                                          (ViewData["SelectedAction"]?.ToString() ?? Context.Request.RouteValues["Action"]?.ToString()) == subMenuItem.Action;
+                                                        <li>
+                                                            <a asp-action="@subMenuItem.Action" asp-controller="@subMenuItem.Controller"
+                                                               class="text-xs @(isSubSelected ? "active font-medium" : "")">
+                                                                @subMenuItem.Name
+                                                                @if (badges[index] > 0) {
+                                                                    <span class="badge badge-primary badge-sm ml-auto">@badges[index]</span>
+                                                                }
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </details>
+                                        </li>
+                                    } else {
+                                        <li>
+                                            <a asp-action="@menuItem.Action" asp-controller="@menuItem.Controller" target="@menuItem.Target"
+                                               class="text-sm @(isSelected ? "active font-medium" : "font-normal")">
+                                                <icon name="@(string.IsNullOrEmpty(menuItem.Icon) ? "circle" : menuItem.Icon)" size="4" />
+                                                @menuItem.Name
+                                                @if (totalBadge > 0) {
+                                                    <span class="badge badge-primary badge-sm ml-auto">@totalBadge</span>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    }
+                </nav>
+
+                <!-- User info at bottom -->
+                <div class="p-3 border-t border-base-200">
+                    <div class="flex items-center gap-3 p-2">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content w-10 rounded-full flex items-center justify-center">
+                                <span>@(user?.GivenName?.Substring(0, 1).ToUpper() ?? "U")</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium truncate">@user?.GivenName @user?.Surname</div>
+                            <div class="text-xs text-base-content/60 truncate">@user?.Email</div>
+                        </div>
+                        <div class="dropdown dropdown-top dropdown-end">
+                            <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square text-base-content">
+                                <icon name="ellipsis-vertical" size="5"/>
+                            </div>
+                            <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow-lg border border-base-200 mb-2">
+                                <li class="menu-title px-4 py-2">
+                                    <span class="text-sm font-semibold">@user?.GivenName @user?.Surname</span>
+                                </li>
+                                <li>
+                                    <a asp-controller="Account" asp-action="ChangePassword">
+                                        <icon name="key" size="4"/>
+                                        Change Password
+                                    </a>
+                                </li>
+                                <li>
+                                    <a asp-action="Logout" asp-controller="Auth">
+                                        <icon name="arrow-right-on-rectangle" size="4"/>
+                                        Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    @if (IsSectionDefined("HelpSidebar"))
+    {
+        <!-- Help Backdrop -->
+        <div id="help-backdrop" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="toggleHelpSidebar(false)"></div>
+
+        <!-- Help Sidebar -->
+        <aside id="help-sidebar" class="fixed top-0 right-0 h-full w-80 bg-base-100 border-l border-base-200 z-50 transform translate-x-full transition-transform duration-300 ease-in-out shadow-xl">
+            <div class="flex flex-col h-full overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b border-base-200">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <icon name="question-mark-circle" size="5" />
+                        Help
+                    </h2>
+                    <button type="button" onclick="toggleHelpSidebar(false)" class="btn btn-ghost btn-sm btn-square">
+                        <icon name="x-mark" size="5" />
+                    </button>
+                </div>
+                <div class="flex-1 min-h-0 overflow-y-auto p-4">
+                    @await RenderSectionAsync("HelpSidebar", required: false)
+                </div>
+            </div>
+        </aside>
+    }
+
+    @if (IsSectionDefined("FilterSidebar"))
+    {
+        <!-- Filter Backdrop -->
+        <div id="filter-backdrop" class="fixed inset-0 bg-black/50 z-40 hidden" onclick="toggleFilterSidebar(false)"></div>
+
+        <!-- Filter Sidebar -->
+        <aside id="filter-sidebar" class="fixed top-0 right-0 h-full w-80 bg-base-100 border-l border-base-200 z-50 transform translate-x-full transition-transform duration-300 ease-in-out shadow-xl">
+            <form id="filter-form" method="get" class="flex flex-col h-full overflow-hidden">
+                <input id="filter-clear-flag" name="clearFilters" type="hidden" disabled />
+                <div class="flex items-center justify-between p-4 border-b border-base-200">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <icon name="funnel" size="5" />
+                        Filters
+                    </h2>
+                    <button type="button" onclick="toggleFilterSidebar(false)" class="btn btn-ghost btn-sm btn-square">
+                        <icon name="x-mark" size="5" />
+                    </button>
+                </div>
+                <div class="flex-1 min-h-0 overflow-y-auto p-4 pb-4">
+                    @await RenderSectionAsync("FilterSidebar", required: false)
+                </div>
+                <div class="p-4 border-t border-base-200 flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-1 gap-2" onclick="toggleFilterSidebar(false)">
+                        <icon name="funnel" size="5" />
+                        Apply
+                    </button>
+                    <button type="button" class="btn btn-ghost" onclick="clearAndSubmitFilters()">Clear</button>
+                </div>
+            </form>
+        </aside>
+    }
+
+    <script src="~/dist/bundle.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+    // Help sidebar toggle
+    function toggleHelpSidebar(open) {
+        const sidebar = document.getElementById('help-sidebar');
+        const backdrop = document.getElementById('help-backdrop');
+        if (!sidebar || !backdrop) return;
+
+        if (open) {
+            // Close filter sidebar if open
+            toggleFilterSidebar(false);
+            sidebar.classList.remove('translate-x-full');
+            backdrop.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        } else {
+            sidebar.classList.add('translate-x-full');
+            backdrop.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    // Filter sidebar toggle
+    function toggleFilterSidebar(open) {
+        const sidebar = document.getElementById('filter-sidebar');
+        const backdrop = document.getElementById('filter-backdrop');
+        if (!sidebar || !backdrop) return;
+
+        if (open) {
+            // Close help sidebar if open
+            toggleHelpSidebar(false);
+            sidebar.classList.remove('translate-x-full');
+            backdrop.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        } else {
+            sidebar.classList.add('translate-x-full');
+            backdrop.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+
+    // Close sidebars on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            toggleFilterSidebar(false);
+            toggleHelpSidebar(false);
+        }
+    });
+
+    // Clear all filter inputs and submit
+    function clearAndSubmitFilters() {
+        const form = document.getElementById('filter-form');
+        if (!form) return;
+
+        // Clear all inputs
+        form.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = false;
+            } else if (el.tagName === 'SELECT') {
+                el.selectedIndex = 0;
+            } else {
+                el.value = '';
+            }
+        });
+
+        // Mark clear request so server-side filter persistence is reset
+        const clearFlag = document.getElementById('filter-clear-flag');
+        if (clearFlag) {
+            clearFlag.disabled = false;
+            clearFlag.value = 'true';
+        }
+
+        toggleFilterSidebar(false);
+        form.submit();
+    }
+
+    // Sidebar collapse functionality
+    function updateSidebarButtons(isOpen) {
+        const expandBtn = document.getElementById('sidebar-expand');
+        if (expandBtn) {
+            expandBtn.classList.toggle('hidden', isOpen);
+        }
+    }
+
+    function toggleSidebar(expand) {
+        const drawer = document.getElementById('main-drawer');
+        const isOpen = drawer.classList.contains('lg:drawer-open');
+
+        if (expand === true || (!expand && !isOpen)) {
+            drawer.classList.add('lg:drawer-open');
+            updateSidebarButtons(true);
+        } else {
+            drawer.classList.remove('lg:drawer-open');
+            updateSidebarButtons(false);
+        }
+
+        // Save to server
+        $.post('@Url.Action("ToggleSidebar", "PersonalSettings")');
+    }
+
+    // Timer update functionality
+    function updateTimer() {
+        var now = new Date();
+        var time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        $("#Time").html(time);
+    }
+
+    // Theme toggle functionality
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const isDark = theme === 'mcpmanager-dark';
+        document.querySelectorAll('.theme-icon-sun').forEach(el => el.classList.toggle('!hidden', !isDark));
+        document.querySelectorAll('.theme-icon-moon').forEach(el => el.classList.toggle('!hidden', isDark));
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'mcpmanager' ? 'mcpmanager-dark' : 'mcpmanager';
+        applyTheme(newTheme);
+
+        // Save to server
+        $.post('@Url.Action("ToggleTheme", "PersonalSettings")');
+    }
+
+    $(document).ready(function () {
+        // Update timer every second
+        setInterval(updateTimer, 1000);
+
+        $('#sidebar-collapse').on('click', function() { toggleSidebar(false); });
+        $('#sidebar-expand').on('click', function() { toggleSidebar(true); });
+        $('#theme-toggle').on('click', toggleTheme);
+    });
+    </script>
+
+    <partial name="_Modals" />
+</body>
+</html>
