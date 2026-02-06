@@ -1,0 +1,14 @@
+@using McpManager.Web.Portal.Dtos
+@model IFilterDto
+
+@{
+    var activeCount = Model?.GetActiveFilterCount() ?? 0;
+}
+
+<button type="button" onclick="toggleFilterSidebar(true)" class="btn btn-ghost gap-2 tooltip tooltip-bottom tooltip-mobile" data-tip="Filters">
+    <icon name="funnel" size="5"/>
+    <span class="hidden sm:inline">Filters</span>
+    @if (activeCount > 0) {
+        <span class="badge badge-primary badge-xs">@activeCount</span>
+    }
+</button>

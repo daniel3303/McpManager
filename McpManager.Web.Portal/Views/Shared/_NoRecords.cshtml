@@ -1,0 +1,7 @@
+@model string
+<div class="flex flex-col items-center justify-center py-8 empty-list">
+    <icon name="inbox" size="10" class="text-base-content/30 mb-3" />
+    <div class="text-base-content/60 text-sm text-center">
+        @(Model ?? "No results found.")
+    </div>
+</div>

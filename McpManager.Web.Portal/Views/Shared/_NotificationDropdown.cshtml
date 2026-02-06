@@ -1,0 +1,109 @@
+@using McpManager.Core.Data.Models.Notifications
+@using McpManager.Core.Repositories
+@using Microsoft.EntityFrameworkCore
+@inject NotificationRepository NotificationRepository
+@inject UserRepository UserRepository
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var userId = Guid.Parse(HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+    var user = await UserRepository.Get(userId);
+    var unreadCount = user != null ? await NotificationRepository.GetUnreadByUser(user).CountAsync() : 0;
+    var recentNotifications = user != null
+        ? await NotificationRepository.GetByUser(user).OrderByDescending(n => n.CreationTime).Take(5).ToListAsync()
+        : new List<Notification>();
+
+    string GetTypeColor(NotificationType type) {
+        return type switch {
+            NotificationType.Success => "text-success",
+            NotificationType.Warning => "text-warning",
+            NotificationType.Error => "text-error",
+            NotificationType.System => "text-neutral",
+            _ => "text-info"
+        };
+    }
+
+    string GetTypeBgColor(NotificationType type) {
+        return type switch {
+            NotificationType.Success => "bg-success/10",
+            NotificationType.Warning => "bg-warning/10",
+            NotificationType.Error => "bg-error/10",
+            NotificationType.System => "bg-neutral/10",
+            _ => "bg-info/10"
+        };
+    }
+
+    string GetRelativeTime(DateTime time) {
+        var span = DateTime.UtcNow - time;
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes} min ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours} hours ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays} days ago";
+        return time.ToString("MMM d");
+    }
+}
+
+<div class="dropdown dropdown-end" id="notification-dropdown">
+    <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square indicator">
+        <icon name="bell" size="5" />
+        @if (unreadCount > 0) {
+            <span id="notification-badge" class="indicator-item badge badge-error badge-xs -top-1 -right-1">@(unreadCount > 99 ? "99+" : unreadCount)</span>
+        } else {
+            <span id="notification-badge" class="indicator-item badge badge-error badge-xs -top-1 -right-1 hidden"></span>
+        }
+    </div>
+    <div tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-50 w-[calc(100vw-1rem)] sm:w-96 p-0 shadow-lg border border-base-200 mt-2 overflow-hidden fixed sm:absolute right-2 sm:right-0 top-14 sm:top-auto">
+        <div class="flex items-center justify-between px-3 py-2 border-b border-base-200">
+            <h3 class="text-sm font-semibold">Notification</h3>
+            <button type="button" class="btn btn-ghost btn-xs btn-square" onclick="closeNotificationDropdown()">
+                <icon name="x-mark" size="4" />
+            </button>
+        </div>
+        <div id="notifications-list" class="max-h-96 overflow-y-auto">
+            @if (recentNotifications.Any()) {
+                @foreach (var notification in recentNotifications) {
+                    <a href="@Url.Action("Show", "Notifications", new { id = notification.Id })"
+                       class="flex items-start gap-3 px-3 py-3 hover:bg-base-200/50 transition-colors border-b border-dashed border-base-300 last:border-b-0 @(!notification.IsRead ? "bg-primary/5" : "")">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full @GetTypeBgColor(notification.Type) flex items-center justify-center">
+                            <icon name="@(notification.Icon ?? "information-circle")" size="4" class="@GetTypeColor(notification.Type)" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs @(!notification.IsRead ? "font-medium" : "text-base-content/80")">
+                                @notification.Title
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(notification.Message)) {
+                                <div class="text-xs text-base-content/60 mt-0.5">
+                                    @notification.Message
+                                </div>
+                            }
+                            <div class="text-xs text-base-content/50 mt-0.5">
+                                @GetRelativeTime(notification.CreationTime)
+                            </div>
+                        </div>
+                        @if (!notification.IsRead) {
+                            <div class="flex-shrink-0 mt-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                            </div>
+                        }
+                    </a>
+                }
+            } else {
+                <div class="flex flex-col items-center justify-center py-8 px-3">
+                    <icon name="bell-slash" size="8" class="text-base-content/30 mb-2" />
+                    <div class="text-base-content/60 text-xs text-center">
+                        No notifications
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="flex items-center justify-between px-3 py-2 border-t border-base-200">
+            <a asp-action="Index" asp-controller="Notifications" class="text-xs text-primary font-medium hover:underline">
+                View All
+            </a>
+            @if (unreadCount > 0) {
+                <button type="button" id="mark-all-read-btn" class="btn btn-ghost btn-xs btn-square" title="Mark all as read">
+                    <icon name="check" size="3" />
+                </button>
+            }
+        </div>
+    </div>
+</div>

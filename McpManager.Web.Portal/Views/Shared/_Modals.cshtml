@@ -1,0 +1,35 @@
+<!-- Ajax Modal - DaisyUI Dialog -->
+<dialog id="ajax-modal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl max-h-[90vh] flex flex-col relative">
+        <button type="button" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 modal-close">✕</button>
+        <h3 class="modal-title text-lg font-medium mb-4 title-text"></h3>
+        <div class="modal-body flex-1 overflow-y-auto">
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Confirm Dialog - DaisyUI Dialog -->
+<dialog id="confirm-form-modal" class="modal">
+    <div class="modal-box">
+        <div class="flex items-start gap-4">
+            <div class="text-warning">
+                <icon name="question-mark-circle" size="10" />
+            </div>
+            <div class="text flex-1 text-base-content pt-2">
+            </div>
+        </div>
+        <div class="modal-action grid grid-cols-2 gap-4">
+            <button type="button" class="btn btn-error gap-2 cancel">
+                <icon name="x-mark" size="5" />
+                <span class="text-cancel">No</span>
+            </button>
+            <button type="button" class="btn btn-success gap-2 confirm">
+                <icon name="check" size="5" />
+                <span class="text-confirm">Yes</span>
+            </button>
+        </div>
+    </div>
+</dialog>
