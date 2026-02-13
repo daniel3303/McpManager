@@ -1,0 +1,43 @@
+@model McpManager.Web.Portal.Dtos.Contracts.IHasCustomHeaders
+
+<div class="lines-wrapper flex flex-col gap-2">
+    @for (var index = 0; index < Model.CustomHeaders.Count; index++) {
+        <div class="custom-header-row flex gap-2 items-center">
+            <input asp-for="CustomHeaders[index].Key" placeholder="Header name" class="input input-bordered input-sm flex-1" />
+            <input asp-for="CustomHeaders[index].Value" placeholder="Header value" class="input input-bordered input-sm flex-1" />
+            <button type="button" class="btn btn-ghost btn-sm btn-square remove-header-btn" data-index="@index">
+                <icon name="x-mark" size="4" />
+            </button>
+        </div>
+    }
+</div>
+
+<button type="button" class="btn btn-ghost btn-sm gap-2 self-start mt-2 add-header-btn">
+    <icon name="plus" size="4" />
+    Add Header
+</button>
+
+<script>
+    window.addEventListener("load", function() {
+        // Use .off().on() to prevent duplicate handlers when partial is reloaded via AJAX
+        $(document)
+            .off("click.customHeaders", ".add-header-btn")
+            .on("click.customHeaders", ".add-header-btn", function() {
+                const values = $("#server-form").serialize();
+                $.post("@Url.Action("AddHeader")", values, function(data) {
+                    $("#custom-headers-section").html(data);
+                });
+            });
+
+        $(document)
+            .off("click.customHeaders", ".remove-header-btn")
+            .on("click.customHeaders", ".remove-header-btn", function() {
+                const index = $(this).data("index");
+                const values = $("#server-form").serializeArray();
+                values.push({ name: "index", value: index });
+                $.post("@Url.Action("RemoveHeader")", values, function(data) {
+                    $("#custom-headers-section").html(data);
+                });
+            });
+    });
+</script>

@@ -1,0 +1,22 @@
+@{
+    Layout = null;
+    var redirect = ViewData["Redirect"]?.ToString();
+    if (string.IsNullOrEmpty(redirect) && Context.Request.HasFormContentType && Context.Request.Form.ContainsKey("Redirect")) {
+        redirect = Context.Request.Form["Redirect"].ToString();
+    }
+    if (string.IsNullOrEmpty(redirect)) {
+        redirect = Context.Request.Query["Redirect"].ToString();
+    }
+    var submitText = ViewData["SubmitText"]?.ToString() ?? "Submit";
+}
+
+<div class="flex justify-end mt-6">
+    @if (!string.IsNullOrEmpty(redirect)) {
+        <input type="hidden" name="Redirect" value="@redirect" />
+    }
+
+    <button class="btn btn-neutral gap-2" type="submit">
+        <icon name="check" size="5" />
+        @submitText
+    </button>
+</div>

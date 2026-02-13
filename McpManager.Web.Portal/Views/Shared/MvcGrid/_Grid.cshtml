@@ -1,0 +1,168 @@
+@using Microsoft.AspNetCore.Mvc.Rendering;
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@using Microsoft.Extensions.Primitives;
+@using NonFactors.Mvc.Grid
+
+@model NonFactors.Mvc.Grid.IGrid
+
+<div id="@Model.Id" class="mvc-grid overflow-x-auto mvc-grid-@(Model.FilterMode.ToString().ToLower())-mode" data-name="@Model.Name" data-filter-mode="@Model.FilterMode" data-url="@Model.Url">
+    @if (!Model.Rows.Any() && Model.EmptyText != null) {
+        // If empty text is null then we show the table with no rows
+        // If empty text is empty string then we don't show anything
+        // Otherwise we show the empty text
+        if (!string.IsNullOrEmpty(Model.EmptyText)) {
+            <div class="mvc-grid-empty text-center py-8 text-base-content/60">@Html.Raw(Model.EmptyText)</div>
+        } else {
+            <div class="mvc-grid-empty"></div>
+        }
+    } else {
+        <div class="mb-4">
+            <span class="text-xs uppercase tracking-wider text-base-content/50">@Model.Pager?.TotalRows results</span>
+        </div>
+        <div class="overflow-x-auto">
+            <!table@(Model.Attributes) class="table table-zebra">
+            @{
+                if(Model.FilterMode != GridFilterMode.Row){
+                    <thead>
+                        <tr class="mvc-grid-headers bg-base-200@(Model.FilterMode == GridFilterMode.Header ? " mvc-grid-row-filters" : "")">
+                            @foreach (var column in Model.Columns) {
+                                var applied = (column.Filter.First ?? column.Filter.Second) == null ? "" : " applied";
+
+                                <th @(column.AsAttributes()) class="text-base-content">
+                                    <div class="flex items-center gap-1">
+                                    @if (column.Filter.IsEnabled == true && !string.IsNullOrEmpty(column.Filter.Name) && Model.FilterMode != GridFilterMode.Row) {
+                                        if (Model.FilterMode == GridFilterMode.Header) {
+                                            string[] values = column.Filter.First?.Values ?? StringValues.Empty;
+                                            var size = column.Title is string {Length: > 0 } title ? title.Length : 20;
+
+                                            <div>
+                                                @if (column.Filter.Options.Any()) {
+                                                    values = column.Filter.Options.Where(option => values.Contains(option.Value)).Select(option => option.Text).ToArray();
+
+                                                    <input class="mvc-grid-value input input-sm" value="@string.Join(", ", values)" size="@size" placeholder="@column.Title" tabindex="-1" readonly />
+                                                } else {
+                                                    <input class="mvc-grid-value input input-sm" value="@string.Join(", ", values)" size="@size" placeholder="@column.Title" />
+                                                }
+                                            </div>
+                                        } else {
+                                            <span class="mvc-grid-title font-semibold">@column.Title</span>
+                                        }
+
+                                        <select class="mvc-grid-options hidden">
+                                            @foreach (var option in column.Filter.Options) {
+                                                <option value="@option.Value">@option.Text</option>
+                                            }
+                                        </select>
+
+                                        if (column.Sort.IsEnabled == true) {
+                                            <button type="button" class="mvc-grid-sort btn btn-ghost btn-xs">
+                                                <span class="sort-asc"><icon name="chevron-up" size="4" /></span>
+                                                <span class="sort-desc"><icon name="chevron-down" size="4" /></span>
+                                                <span class="sort-none"><icon name="arrows-up-down" size="4" /></span>
+                                            </button>
+                                        }
+
+                                        <button type="button" class="mvc-grid-filter btn btn-ghost btn-xs@(applied)">
+                                            <icon name="funnel" size="4" class="@(string.IsNullOrEmpty(applied) ? "opacity-30" : "text-primary")" />
+                                        </button>
+                                    } else {
+                                        <span class="mvc-grid-title font-semibold">@column.Title</span>
+
+                                        if (column.Sort.IsEnabled == true) {
+                                            <button type="button" class="mvc-grid-sort btn btn-ghost btn-xs">
+                                                <span class="sort-asc"><icon name="chevron-up" size="4" /></span>
+                                                <span class="sort-desc"><icon name="chevron-down" size="4" /></span>
+                                                <span class="sort-none"><icon name="arrows-up-down" size="4" /></span>
+                                            </button>
+                                        }
+                                    }
+                                    </div>
+                                </th>
+                             }
+                        </tr>
+                    @if (Model.FilterMode == GridFilterMode.Row) {
+                        <tr class="mvc-grid-row-filters bg-base-100">
+                            @foreach (var column in Model.Columns) {
+                                var hidden = column.IsHidden ? " mvc-grid-hidden" : "";
+
+                                if (column.Filter.IsEnabled == true && !string.IsNullOrEmpty(column.Filter.Name)) {
+                                    var applied = (column.Filter.First ?? column.Filter.Second) == null ? "" : " applied";
+
+                                    <th class="filterable@(column.CssClasses)@(hidden) p-1">
+                                        <div class="flex gap-1">
+                                            @if (column.Filter.Options.Any()) {
+                                                if (column.Filter.Type == GridFilterType.Multi) {
+                                                    string[] values = column.Filter.First?.Values ?? StringValues.Empty;
+                                                    values = column.Filter.Options.Where(option => values.Contains(option.Value)).Select(option => option.Text).ToArray();
+
+                                                    <input class="mvc-grid-value input input-sm flex-1" value="@string.Join(", ", values)" tabindex="-1" readonly />
+
+                                                    <select class="mvc-grid-options hidden">
+                                                        @foreach (var option in column.Filter.Options) {
+                                                            <option value="@option.Value">@option.Text</option>
+                                                        }
+                                                    </select>
+                                                } else {
+                                                    <select class="mvc-grid-value select select-sm flex-1">
+                                                        @foreach (var option in column.Filter.Options) {
+                                                            if (column.Filter.First?.Values.Contains(option.Value) == true) {
+                                                                <option value="@option.Value" selected>@option.Text</option>
+                                                            } else {
+                                                                <option value="@option.Value">@option.Text</option>
+                                                            }
+                                                        }
+                                                    </select>
+                                                }
+                                            } else {
+                                                <input class="mvc-grid-value input input-sm flex-1" value="@column.Filter.First?.Values" />
+                                            }
+                                            <button type="button" class="mvc-grid-filter btn btn-sm btn-ghost@(applied)">
+                                                <icon name="funnel" size="4" class="@(string.IsNullOrEmpty(applied) ? "opacity-30" : "text-primary")" />
+                                            </button>
+                                        </div>
+                                    </th>
+                                } else {
+                                    <th class="@(column.CssClasses)@(hidden)"></th>
+                                }
+                            }
+                        </tr>
+                    }
+                </thead>
+                }
+            }
+
+            <tbody>
+                @foreach (var row in Model.Rows) {
+                    <!tr@(row.Attributes) class="hover">
+                        @foreach (var column in Model.Columns) {
+                            var classes = (column.IsHidden ? column.CssClasses + " mvc-grid-hidden" : column.CssClasses).Trim();
+                            if (string.IsNullOrEmpty(classes)) {
+                                <td><div class="table-td-content max-w-xs">@column.ValueFor(row)</div></td>
+                            } else {
+                                <td class="@classes"><div class="table-td-content max-w-xs">@column.ValueFor(row)</div></td>
+                            }
+                        }
+                    </!tr>
+                }
+                @if (!Model.Rows.Any() && Model.EmptyText != null) {
+                    <tr class="mvc-grid-empty-row">
+                        <td colspan="@Model.Columns.Count()" class="text-center py-8 text-base-content/60">
+                            @Html.Raw(Model.EmptyText)
+                        </td>
+                    </tr>
+                }
+
+            </tbody>
+            @if (!string.IsNullOrEmpty(Model.FooterPartialViewName)) {
+                <tfoot>
+                    @await Html.PartialAsync(Model.FooterPartialViewName, Model)
+                </tfoot>
+            }
+            </!table>
+        </div>
+        @if (Model.Pager != null) {
+            @await Html.PartialAsync(Model.Pager.PartialViewName, Model.Pager)
+        }
+    }
+
+</div>

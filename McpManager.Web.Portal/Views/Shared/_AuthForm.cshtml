@@ -1,0 +1,44 @@
+@using McpManager.Core.Data.Models.Authentication
+@model McpManager.Web.Portal.Dtos.Contracts.IHasAuth
+
+<div class="grid grid-cols-12 gap-3">
+    <div class="col-span-12">
+        <label class="label">
+            <span class="label-text">Authentication Type</span>
+        </label>
+        <select asp-for="Auth.Type" asp-items="Html.GetEnumSelectList<AuthType>()" class="select select-bordered w-full auth-type-select"></select>
+    </div>
+
+    @if (Model.Auth.Type == AuthType.Basic) {
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.Username" />
+        </div>
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.Password" />
+        </div>
+    } else if (Model.Auth.Type == AuthType.Bearer) {
+        <div class="col-span-12">
+            <form-field asp-for="Auth.Token" />
+        </div>
+    } else if (Model.Auth.Type == AuthType.ApiKey) {
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.ApiKeyName" placeholder="X-API-Key" />
+        </div>
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.ApiKeyValue" />
+        </div>
+    } else if (Model.Auth.Type == AuthType.OAuth2) {
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.ClientId" />
+        </div>
+        <div class="col-span-12 md:col-span-6">
+            <form-field asp-for="Auth.ClientSecret" />
+        </div>
+        <div class="col-span-12">
+            <form-field asp-for="Auth.TokenEndpoint" placeholder="https://auth.example.com/oauth/token" />
+        </div>
+        <div class="col-span-12">
+            <form-field asp-for="Auth.Scope" placeholder="read write (space-separated)" />
+        </div>
+    }
+</div>

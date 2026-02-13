@@ -1,0 +1,227 @@
+@model string
+@{
+    // Unique suffix for element IDs to avoid conflicts if rendered multiple times
+    var suffix = Model.Replace("/", "-").TrimStart('-');
+}
+
+<!-- Connect Your Tools -->
+<div class="flex items-center justify-between mt-6 mb-3">
+    <h2 class="text-lg font-semibold">Connect to Your Tools</h2>
+    <a asp-controller="ApiKeys" asp-action="Index" class="btn btn-ghost btn-sm">
+        <icon name="key" size="4" /> Manage API Keys
+    </a>
+</div>
+
+<!-- Tool logo buttons -->
+<div class="flex flex-wrap gap-3">
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="cursor">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Cursor
+    </button>
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="claude-code">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 13a4 4 0 0 0 8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="9" cy="10" r="1" fill="currentColor"/>
+            <circle cx="15" cy="10" r="1" fill="currentColor"/>
+        </svg>
+        Claude Code
+    </button>
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="windsurf">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 18C8 18 8 6 12 6s4 12 8 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 14c4 0 4-8 8-8s4 8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+        </svg>
+        Windsurf
+    </button>
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="opencode">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 4l-5 8 5 8M15 4l5 8-5 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Opencode
+    </button>
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="codex">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 9h8M8 12h6M8 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Codex
+    </button>
+    <button class="btn btn-ghost border border-base-300 btn-tool-connect-@suffix" data-tool="antigravity">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3l8 18H4l8-18z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="12" cy="15" r="2" fill="currentColor"/>
+        </svg>
+        Antigravity
+    </button>
+</div>
+
+<!-- Connection modal -->
+<dialog id="tool-modal-@suffix" class="modal">
+    <div class="modal-box max-w-2xl">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <h3 id="tool-modal-title-@suffix" class="text-lg font-bold mb-1"></h3>
+        <p id="tool-modal-path-@suffix" class="text-xs text-base-content/60 mb-3"></p>
+        <!-- Tabs for tools that also have a CLI command -->
+        <div id="tool-modal-tabs-@suffix" class="tabs tabs-box mb-3 hidden">
+            <button class="tab tab-active" data-tab="config">Config File</button>
+            <button class="tab" data-tab="command">Command</button>
+        </div>
+        <pre id="tool-modal-snippet-@suffix" class="bg-base-200 rounded-lg p-3 text-xs overflow-x-auto mcp-snippet"></pre>
+        <div class="modal-action">
+            <button id="btn-show-key-@suffix" class="btn btn-ghost btn-sm">
+                <icon name="eye" size="4" /> Show API Key
+            </button>
+            <button id="tool-modal-copy-@suffix" class="btn btn-ghost btn-sm">Copy</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script>
+    // Connect tools: modal, snippet rendering, copy, and API key reveal
+    document.addEventListener('DOMContentLoaded', function () {
+        var s = '@suffix';
+        var mcpUrl = window.location.origin + '@Model';
+        var apiKeyPlaceholder = 'your-api-key-here';
+
+        // Tool configuration data (snippet = config file, command = CLI alternative)
+        var tools = {
+            'cursor': {
+                title: 'Cursor',
+                path: '.cursor/mcp.json',
+                snippet: JSON.stringify({ mcpServers: { mcpmanager: { url: mcpUrl, headers: { Authorization: 'Bearer ' + apiKeyPlaceholder } } } }, null, 2),
+                command: 'cursor --add-mcp \'{"mcpServers":{"mcpmanager":{"url":"' + mcpUrl + '","headers":{"Authorization":"Bearer ' + apiKeyPlaceholder + '"}}}}\''
+            },
+            'claude-code': {
+                title: 'Claude Code',
+                path: '.mcp.json',
+                snippet: JSON.stringify({ mcpServers: { mcpmanager: { url: mcpUrl, headers: { Authorization: 'Bearer ' + apiKeyPlaceholder } } } }, null, 2),
+                command: 'claude mcp add --transport http mcpmanager ' + mcpUrl + ' --header "Authorization: Bearer ' + apiKeyPlaceholder + '"'
+            },
+            'windsurf': {
+                title: 'Windsurf',
+                path: '~/.codeium/windsurf/mcp_config.json',
+                snippet: JSON.stringify({ mcpServers: { mcpmanager: { serverUrl: mcpUrl, headers: { Authorization: 'Bearer ' + apiKeyPlaceholder } } } }, null, 2)
+            },
+            'opencode': {
+                title: 'Opencode',
+                path: 'opencode.json',
+                snippet: JSON.stringify({ mcp: { mcpmanager: { type: 'remote', url: mcpUrl, headers: { Authorization: 'Bearer ' + apiKeyPlaceholder } } } }, null, 2)
+            },
+            'codex': {
+                title: 'Codex',
+                path: '~/.codex/config.toml',
+                snippet: '[mcp_servers.mcpmanager]\nurl = "' + mcpUrl + '"\nbearer_token_env_var = "MCPMANAGER_API_KEY"'
+            },
+            'antigravity': {
+                title: 'Antigravity',
+                path: 'MCP Store \u2192 raw config',
+                snippet: JSON.stringify({ mcpServers: { mcpmanager: { url: mcpUrl, headers: { Authorization: 'Bearer ' + apiKeyPlaceholder } } } }, null, 2)
+            }
+        };
+
+        var activeTool = null;
+        var activeTab = 'config';
+
+        var el = function (id) { return document.getElementById(id); };
+        var qa = function (sel) { return document.querySelectorAll(sel); };
+
+        // Render the snippet for the current tab
+        function renderSnippet() {
+            if (!activeTool) return;
+            var tool = tools[activeTool];
+            if (activeTab === 'command' && tool.command) {
+                el('tool-modal-snippet-' + s).textContent = tool.command;
+                el('tool-modal-path-' + s).textContent = 'Run in terminal';
+            } else {
+                el('tool-modal-snippet-' + s).textContent = tool.snippet;
+                el('tool-modal-path-' + s).textContent = tool.path;
+            }
+        }
+
+        // Open modal with tool-specific content
+        qa('.btn-tool-connect-' + s).forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                activeTool = this.dataset.tool;
+                var tool = tools[activeTool];
+                if (!tool) return;
+                activeTab = 'config';
+                el('tool-modal-title-' + s).textContent = tool.title;
+
+                // Show/hide tabs based on whether tool has a command
+                var tabs = el('tool-modal-tabs-' + s);
+                if (tool.command) {
+                    tabs.classList.remove('hidden');
+                    tabs.querySelector('[data-tab="config"]').classList.add('tab-active');
+                    tabs.querySelector('[data-tab="command"]').classList.remove('tab-active');
+                } else {
+                    tabs.classList.add('hidden');
+                }
+
+                renderSnippet();
+                el('tool-modal-' + s).showModal();
+            });
+        });
+
+        // Tab switching
+        qa('#tool-modal-tabs-' + s + ' .tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                qa('#tool-modal-tabs-' + s + ' .tab').forEach(function (t) { t.classList.remove('tab-active'); });
+                this.classList.add('tab-active');
+                activeTab = this.dataset.tab;
+                renderSnippet();
+            });
+        });
+
+        // Copy snippet
+        el('tool-modal-copy-' + s).addEventListener('click', function () {
+            var btn = this;
+            var text = el('tool-modal-snippet-' + s).textContent;
+            navigator.clipboard.writeText(text).then(function () {
+                btn.textContent = 'Copied!';
+                setTimeout(function () { btn.textContent = 'Copy'; }, 2000);
+            });
+        });
+
+        // Fetch active API key and inject into all tool snippets
+        var showKeyBtn = el('btn-show-key-' + s);
+        if (showKeyBtn) {
+            showKeyBtn.addEventListener('click', function () {
+                var btn = this;
+                btn.disabled = true;
+
+                fetch('@Url.Action("ActiveApiKey", "Home")')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.success) {
+                            showMessage(data.message, 'Warning');
+                            btn.disabled = false;
+                            return;
+                        }
+
+                        // Update snippet data with real key
+                        Object.keys(tools).forEach(function (key) {
+                            var tool = tools[key];
+                            tool.snippet = tool.snippet.replace(new RegExp(apiKeyPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), data.key);
+                            if (tool.command) {
+                                tool.command = tool.command.replace(new RegExp(apiKeyPlaceholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), data.key);
+                            }
+                        });
+
+                        // Re-render current snippet if modal is open
+                        renderSnippet();
+
+                        apiKeyPlaceholder = data.key;
+                        btn.textContent = 'Key Revealed';
+                        btn.disabled = true;
+                    });
+            });
+        }
+    });
+</script>
