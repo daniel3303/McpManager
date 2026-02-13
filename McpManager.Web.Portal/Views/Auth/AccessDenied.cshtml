@@ -1,0 +1,21 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Access Denied";
+}
+
+<div id="auth-layout">
+    <div class="auth-content text-center">
+        <div class="mb-8 text-base-content">
+            <partial name="_Logo" />
+        </div>
+
+        <p class="text-8xl font-light text-base-content/20 mb-2">403</p>
+        <p class="text-base-content/60 mb-8">You don't have permission to access this page.</p>
+
+        <a asp-action="Index" asp-controller="Home" class="auth-btn flex items-center justify-center">Back</a>
+
+        <p class="mt-8 text-center text-xs text-base-content/50">
+            Proudly developed by <a href="https://danielapoliveira.com/" target="_blank" class="link">Daniel Oliveira</a>
+        </p>
+    </div>
+</div>

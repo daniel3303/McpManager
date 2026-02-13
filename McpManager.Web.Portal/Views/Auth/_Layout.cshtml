@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="mcpmanager">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MCP Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/dist/main.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", false)
+</head>
+<body id="auth-layout">
+    @RenderBody()
+    <script src="~/dist/bundle.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", false)
+</body>
+</html>

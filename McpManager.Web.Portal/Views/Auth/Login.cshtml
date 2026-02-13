@@ -1,0 +1,58 @@
+@model McpManager.Web.Portal.Dtos.Auth.LoginDto
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Login";
+    var error = ViewData["Error"]?.ToString();
+    var invalidLogin = ViewData["InvalidLogin"] as string;
+}
+
+<div id="auth-layout">
+    <div class="auth-content">
+        <div class="mb-8 text-center text-primary">
+            <partial name="_Logo" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(invalidLogin) || !string.IsNullOrEmpty(error)) {
+            <p class="text-sm text-error mb-4">@(invalidLogin ?? error)</p>
+        }
+
+        <form asp-action="Login" asp-controller="Auth" id="loginForm">
+            <fieldset class="fieldset mb-4">
+                <legend class="fieldset-legend">Email</legend>
+                <input class="auth-input" asp-for="Email" type="email" placeholder="name@example.com" />
+                <span class="text-error text-xs" asp-validation-for="Email"></span>
+            </fieldset>
+
+            <fieldset class="fieldset mb-4">
+                <legend class="fieldset-legend">Password</legend>
+                <input class="auth-input" asp-for="Password" />
+                <span class="text-error text-xs" asp-validation-for="Password"></span>
+            </fieldset>
+
+            <div class="mb-6 flex items-center gap-2">
+                <input type="checkbox" asp-for="RememberMe" class="checkbox checkbox-sm" />
+                <label class="text-sm text-base-content/70" asp-for="RememberMe">Remember me</label>
+            </div>
+
+            <button type="submit" class="auth-btn" id="loginBtn">
+                <span id="loginBtnText">Sign in</span>
+            </button>
+        </form>
+
+        <p class="mt-8 text-center text-xs text-base-content/50">
+            Proudly developed by <a href="https://danielapoliveira.com/" target="_blank" class="link">Daniel Oliveira</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Disable login button and show loading text on form submit
+    document.getElementById('loginForm').addEventListener('submit', function() {
+        var btn = document.getElementById('loginBtn');
+        document.getElementById('loginBtnText').textContent = 'Signing in...';
+        btn.disabled = true;
+    });
+</script>
+}
