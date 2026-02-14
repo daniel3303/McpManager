@@ -1,0 +1,117 @@
+@using McpManager.Core.Data.Models.Identity
+@using McpManager.Web.Portal.Authorization
+@model User
+
+@{
+    var claimGroups = ViewData["ClaimGroups"] as List<ApplicationClaimGroup>;
+    var userClaimTypes = Model.Claims.Select(c => c.ClaimType).ToHashSet();
+}
+
+@section PageActions {
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-ghost gap-2">
+        <icon name="pencil-square" size="5" />
+        <span class="hidden sm:inline">Edit</span>
+    </a>
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<div class="grid grid-cols-12 gap-6">
+    <!-- User Details -->
+    <div class="col-span-12 lg:col-span-7">
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Profile</h3>
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="avatar placeholder">
+                        <div class="bg-neutral text-neutral-content w-16 rounded-full flex items-center justify-center">
+                            <span class="text-xl">@(Model.GivenName?.Substring(0, 1).ToUpper() ?? "U")</span>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="font-medium">@Model.FullName</p>
+                        <p class="text-sm text-base-content/60">@Model.Email</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Name</label>
+                        <p class="font-medium">@Model.GivenName</p>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Surname</label>
+                        <p class="font-medium">@Model.Surname</p>
+                    </div>
+                    <div class="col-span-12">
+                        <label class="text-xs text-base-content/60">Email</label>
+                        <p>@Model.Email</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions -->
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-3">
+                <h3 class="font-semibold text-sm">Permissions</h3>
+                @if (claimGroups != null) {
+                    foreach (var group in claimGroups) {
+                        <div class="bg-base-200 rounded-lg p-2 mb-2 last:mb-0">
+                            <h4 class="text-xs font-medium text-base-content/70 mb-1">@group.Name</h4>
+                            <div class="flex flex-col">
+                                @foreach (var claim in group.Claims) {
+                                    var isEnabled = userClaimTypes.Contains(claim.Type);
+                                    <div class="flex items-center gap-2 py-0.5" title="@claim.Description">
+                                        @if (isEnabled) {
+                                            <icon name="check-circle" size="4" class="text-success" />
+                                        } else {
+                                            <icon name="x-circle" size="4" class="text-base-content/30" />
+                                        }
+                                        <span class="text-sm @(!isEnabled ? "text-base-content/40" : "")">@claim.Name</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata -->
+    <div class="col-span-12 lg:col-span-5">
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Status</h3>
+                <div class="flex flex-col gap-2 text-sm">
+                    <div>
+                        <label class="text-xs text-base-content/60">Account Status</label>
+                        <p>
+                            @if (Model.IsActive) {
+                                <span class="badge badge-success">Active</span>
+                            } else {
+                                <span class="badge badge-error">Inactive</span>
+                            }
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-xs text-base-content/60">Email Confirmed</label>
+                        <p>
+                            @if (Model.EmailConfirmed) {
+                                <span class="badge badge-success">Confirmed</span>
+                            } else {
+                                <span class="badge badge-warning">Not Confirmed</span>
+                            }
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-xs text-base-content/60">Created</label>
+                        <p>@Model.CreationTime.ToString("g")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

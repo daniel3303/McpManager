@@ -1,0 +1,229 @@
+@using McpManager.Web.Portal.Dtos
+@{
+    var servers = (List<ServerListItem>)ViewData["Servers"];
+}
+
+@section PageActions {
+    <div class="flex flex-wrap gap-2 items-center">
+        <button id="autoRefreshToggle" class="btn btn-success gap-2" data-active="true">
+            <icon name="signal" size="5" class="auto-refresh-icon-active" />
+            <icon name="pause" size="5" class="auto-refresh-icon-paused hidden" />
+            <span class="hidden sm:inline auto-refresh-label">Live</span>
+        </button>
+        <button id="clearLogs" class="btn btn-ghost">
+            <icon name="trash" size="5" />
+            <span class="hidden sm:inline">Clear</span>
+        </button>
+        <partial name="_HelpButton" />
+        <button type="button" id="filterButton" onclick="toggleFilterSidebar(true)" class="btn btn-ghost gap-2">
+            <icon name="funnel" size="5" />
+            <span class="hidden sm:inline">Filters</span>
+            <span id="filterBadge" class="badge badge-primary badge-xs hidden">0</span>
+        </button>
+    </div>
+}
+
+@section FilterSidebar {
+    <div class="space-y-4">
+        <fieldset class="fieldset pb-0">
+            <legend class="fieldset-legend">Server</legend>
+            <select id="serverFilter" class="select w-full" data-search="false" data-clear="false">
+                <option value="">All Servers</option>
+                @foreach (var s in servers) {
+                    <option value="@s.Id">@s.Name</option>
+                }
+            </select>
+        </fieldset>
+        <fieldset class="fieldset pb-0">
+            <legend class="fieldset-legend">Level</legend>
+            <select id="levelFilter" class="select w-full" data-search="false" data-clear="false">
+                <option value="">All Levels</option>
+                <option value="Info">Info</option>
+                <option value="Warning">Warning</option>
+                <option value="Error">Error</option>
+            </select>
+        </fieldset>
+    </div>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Live Logs</h3>
+            <p class="text-base-content/70">Real-time streaming log viewer for MCP server activity. Logs auto-refresh every 2 seconds when in Live mode.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Controls</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><strong>Live / Paused</strong> &mdash; toggle auto-refresh on or off</li>
+                <li><strong>Clear</strong> &mdash; clear the visible log entries</li>
+                <li><strong>Filters</strong> &mdash; filter by server or log level</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Tips</h3>
+            <p class="text-base-content/70">The log keeps the most recent 500 entries in view. New entries appear at the bottom with auto-scroll.</p>
+        </div>
+    </div>
+}
+
+<div class="overflow-x-auto">
+    <table class="table table-sm" id="logsTable">
+        <thead>
+            <tr>
+                <th class="w-1">Level</th>
+                <th class="w-48">Time</th>
+                <th class="w-40">Server</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id="logsBody">
+            <tr id="emptyRow">
+                <td colspan="4" class="text-center text-base-content/50 py-8">
+                    Waiting for log entries...
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        // Live Logs auto-refresh polling
+        (function() {
+            var lastTimestamp = null;
+            var autoRefresh = true;
+            var pollInterval = null;
+
+            // Badge classes for log levels
+            var levelBadges = {
+                'Info': 'badge badge-info badge-sm',
+                'Warning': 'badge badge-warning badge-sm',
+                'Error': 'badge badge-error badge-sm'
+            };
+
+            function formatTime(ts) {
+                var d = new Date(ts);
+                return d.toLocaleTimeString() + '.' + String(d.getMilliseconds()).padStart(3, '0');
+            }
+
+            function createRow(entry) {
+                var badgeClass = levelBadges[entry.level] || 'badge badge-ghost badge-sm';
+                return '<tr class="hover">' +
+                    '<td><span class="' + badgeClass + '">' + entry.level + '</span></td>' +
+                    '<td class="text-xs text-base-content/60 whitespace-nowrap">' + formatTime(entry.timestamp) + '</td>' +
+                    '<td class="text-xs font-medium">' + (entry.serverName || '-') + '</td>' +
+                    '<td class="text-sm">' + $('<span>').text(entry.message).html() + '</td>' +
+                    '</tr>';
+            }
+
+            function poll() {
+                var params = {};
+                if (lastTimestamp) params.since = lastTimestamp;
+                var serverId = $('#serverFilter').val();
+                var level = $('#levelFilter').val();
+                if (serverId) params.serverId = serverId;
+                if (level) params.level = level;
+
+                $.get('@Url.Action("Poll")', params, function(data) {
+                    if (data.entries && data.entries.length > 0) {
+                        $('#emptyRow').remove();
+                        // Entries are returned newest-first; reverse to append in order
+                        var entries = data.entries.reverse();
+                        entries.forEach(function(entry) {
+                            $('#logsBody').append(createRow(entry));
+                        });
+                        lastTimestamp = data.entries[0].timestamp;
+
+                        // Keep max 500 rows in DOM
+                        var rows = $('#logsBody tr');
+                        if (rows.length > 500) {
+                            rows.slice(0, rows.length - 500).remove();
+                        }
+
+                        // Auto-scroll to bottom
+                        var table = document.getElementById('logsTable');
+                        table.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }
+                });
+            }
+
+            function startPolling() {
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(poll, 2000);
+                poll();
+            }
+
+            function stopPolling() {
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+            }
+
+            // Toggle auto-refresh
+            $('#autoRefreshToggle').on('click', function() {
+                autoRefresh = !autoRefresh;
+                var $btn = $(this);
+                if (autoRefresh) {
+                    $btn.removeClass('btn-ghost border border-base-300').addClass('btn-success');
+                    $btn.find('.auto-refresh-icon-active').removeClass('hidden');
+                    $btn.find('.auto-refresh-icon-paused').addClass('hidden');
+                    $btn.find('.auto-refresh-label').text('Live');
+                    startPolling();
+                } else {
+                    $btn.removeClass('btn-success').addClass('btn-ghost border border-base-300');
+                    $btn.find('.auto-refresh-icon-active').addClass('hidden');
+                    $btn.find('.auto-refresh-icon-paused').removeClass('hidden');
+                    $btn.find('.auto-refresh-label').text('Paused');
+                    stopPolling();
+                }
+            });
+
+            // Clear visible logs
+            $('#clearLogs').on('click', function() {
+                $('#logsBody').html('<tr id="emptyRow"><td colspan="4" class="text-center text-base-content/50 py-8">Waiting for log entries...</td></tr>');
+                lastTimestamp = new Date().toISOString();
+            });
+
+            function applyFilters() {
+                lastTimestamp = null;
+                $('#logsBody').html('');
+                poll();
+                updateFilterBadge();
+                toggleFilterSidebar(false);
+            }
+
+            function clearFilters() {
+                $('#serverFilter').val('').trigger('change');
+                $('#levelFilter').val('').trigger('change');
+                applyFilters();
+            }
+
+            function updateFilterBadge() {
+                var count = 0;
+                if ($('#serverFilter').val()) count++;
+                if ($('#levelFilter').val()) count++;
+                var $badge = $('#filterBadge');
+                if (count > 0) {
+                    $badge.text(count).removeClass('hidden');
+                } else {
+                    $badge.addClass('hidden');
+                }
+            }
+
+            // Override filter sidebar Apply/Clear buttons
+            var $filterForm = $('#filter-form');
+            $filterForm.on('submit', function(e) {
+                e.preventDefault();
+                applyFilters();
+            });
+            $filterForm.find('button[onclick="clearAndSubmitFilters()"]').attr('onclick', null).on('click', function(e) {
+                e.preventDefault();
+                clearFilters();
+            });
+
+            startPolling();
+        })();
+    </script>
+}

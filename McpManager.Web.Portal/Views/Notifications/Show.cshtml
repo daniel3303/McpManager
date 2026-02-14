@@ -1,0 +1,56 @@
+@using McpManager.Core.Data.Models.Notifications
+@model Notification
+
+@{
+    string GetTypeBadgeClass(NotificationType type) {
+        return type switch {
+            NotificationType.Success => "badge-success",
+            NotificationType.Warning => "badge-warning",
+            NotificationType.Error => "badge-error",
+            NotificationType.System => "badge-neutral",
+            _ => "badge-info"
+        };
+    }
+}
+
+@section PageActions {
+    <form asp-action="Delete" asp-route-id="@Model.Id" class="form-confirm" data-message="Are you sure you want to delete this notification?">
+        <button type="submit" class="btn btn-ghost gap-2 text-error">
+            <icon name="trash" size="5" />
+            <span class="hidden sm:inline">Delete</span>
+        </button>
+    </form>
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<div class="max-w-2xl">
+    <div class="card bg-base-100 border border-base-200">
+        <div class="card-body p-6">
+            <div class="flex items-start gap-4">
+                @if (!string.IsNullOrWhiteSpace(Model.Icon)) {
+                    <div class="flex-shrink-0">
+                        <icon name="@Model.Icon" size="8" class="text-primary" />
+                    </div>
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="badge @GetTypeBadgeClass(Model.Type) badge-sm">@Model.Type</span>
+                        @if (Model.IsRead) {
+                            <span class="badge badge-ghost badge-sm">Read</span>
+                        }
+                    </div>
+                    <h2 class="text-xl font-semibold mb-2">@Model.Title</h2>
+                    @if (!string.IsNullOrWhiteSpace(Model.Message)) {
+                        <p class="text-base-content/80 whitespace-pre-wrap">@Model.Message</p>
+                    }
+                    <div class="mt-4 text-sm text-base-content/60">
+                        @Model.CreationTime.ToString("f")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,60 @@
+@using McpManager.Web.Portal.Dtos.Users
+@using McpManager.Web.Portal.Extensions
+@using NonFactors.Mvc.Grid
+@model IQueryable<McpManager.Core.Data.Models.Identity.User>
+
+@{
+    var filters = (TextSearchDto)ViewData["Filters"] ?? new TextSearchDto();
+}
+
+@section PageActions {
+    <a asp-action="Create" class="btn btn-ghost gap-2">
+        <icon name="plus" size="5" />
+        <span class="hidden sm:inline">New</span>
+    </a>
+    <partial name="_HelpButton" />
+    <partial name="_FilterButton" model="filters" />
+}
+
+@section FilterSidebar {
+    <fieldset class="fieldset pb-0">
+        <legend class="fieldset-legend">Search</legend>
+        <input placeholder="Search users" class="input w-full" asp-for="@filters.Search" />
+    </fieldset>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">User Management</h3>
+            <p class="text-base-content/70">Manage users who have access to the MCP Manager portal. Toggle users active or inactive, and view their details.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Tips</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Use the toggle to activate or deactivate a user</li>
+                <li>Click a user to view or edit their profile and roles</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@(Html
+    .Grid(Model)
+    .Build(columns => {
+        columns.AddActivating();
+        columns.AddActions(b => b.AddShow());
+        columns.Add(model => model.GivenName).Titled("Name");
+        columns.Add(model => model.Surname).Titled("Surname");
+        columns.Add(model => model.Email).RenderedAs(m => m.Email).Titled("Email");
+    })
+    .Using(GridFilterMode.Excel)
+    .Empty("")
+    .Sortable()
+    .Pageable()
+)
+@if (!Model.Any()) {
+    <div class="mt-4">
+        <partial name="_NoRecords" model="@("No users registered yet")" />
+    </div>
+}

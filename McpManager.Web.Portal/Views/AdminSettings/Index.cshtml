@@ -1,0 +1,48 @@
+@using McpManager.Core.Data.Models
+@model AppSettings
+
+@section PageActions {
+    <partial name="_HelpButton" />
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Admin Settings</h3>
+            <p class="text-base-content/70">Configure global settings that affect how MCP Manager connects to upstream servers.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">MCP Connection</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><strong>Connection Timeout</strong> &mdash; how long to wait (in seconds) when connecting to an MCP server</li>
+                <li><strong>Retry Attempts</strong> &mdash; how many times to retry a failed connection before giving up</li>
+            </ul>
+        </div>
+    </div>
+}
+
+<form asp-action="Index" data-submitting-message="Saving settings...">
+    <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 md:col-span-6">
+            <div class="card bg-base-100 border border-base-200">
+                <div class="card-body p-4">
+                    <h3 class="font-semibold text-sm mb-3">MCP Connection</h3>
+                    <div class="space-y-4">
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">Connection Timeout (seconds)</legend>
+                            <input asp-for="McpConnectionTimeoutSeconds" type="number" min="5" max="300" class="input w-full" />
+                        </fieldset>
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">Retry Attempts</legend>
+                            <input asp-for="McpRetryAttempts" type="number" min="0" max="10" class="input w-full" />
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-end mt-6">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+</form>

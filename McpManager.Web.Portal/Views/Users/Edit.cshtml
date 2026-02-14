@@ -1,0 +1,127 @@
+@using McpManager.Core.Data.Models.Identity
+@model McpManager.Web.Portal.Dtos.Users.UserForEditDto
+
+@{
+    var user = ViewData["EditUser"] as User;
+}
+
+@section PageActions {
+    <a asp-action="Show" asp-route-id="@user?.Id" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<form asp-action="Edit" asp-route-id="@user?.Id">
+    <div asp-validation-summary="ModelOnly" class="alert alert-error mb-4"></div>
+
+    <div class="grid grid-cols-12 gap-6">
+        <!-- User Details - Left Column -->
+        <div class="col-span-12 lg:col-span-7">
+            <!-- User Photo Section -->
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fieldset-legend">Profile Photo</h3>
+                    <div class="flex items-center gap-4">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content w-20 rounded-full flex items-center justify-center">
+                                <span class="text-2xl">@(user?.GivenName?.Substring(0, 1).ToUpper() ?? "U")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fieldset-legend">User Details</h3>
+                    <div class="grid grid-cols-12 gap-3">
+                        <form-field asp-for="GivenName" class="col-span-12 md:col-span-6" />
+                        <form-field asp-for="Surname" class="col-span-12 md:col-span-6" />
+                        <form-field asp-for="Email" class="col-span-12" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fieldset-legend">Change Password</h3>
+                    <p class="text-xs text-base-content/60">Leave blank to keep the current password.</p>
+                    <div class="grid grid-cols-12 gap-3">
+                        <form-field asp-for="Password" class="col-span-12 md:col-span-6" />
+                        <form-field asp-for="ConfirmPassword" class="col-span-12 md:col-span-6" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissions - Right Column (narrower) -->
+        <div class="col-span-12 lg:col-span-5">
+            <div class="card bg-base-100 border border-base-200">
+                <div class="card-body p-3">
+                    <h3 class="fieldset-legend">Permissions</h3>
+                    @{
+                        var claimsByGroup = Model.Claims
+                            .Select((c, i) => new { Claim = c, Index = i })
+                            .GroupBy(x => x.Claim.Group);
+                    }
+                    @foreach (var group in claimsByGroup) {
+                        <div class="bg-base-200 rounded-lg p-2 mb-2 last:mb-0">
+                            <h4 class="text-xs font-medium text-base-content/70 mb-1">@group.Key</h4>
+                            <div class="flex flex-col">
+                                @foreach (var item in group) {
+                                    var i = item.Index;
+                                    <input type="hidden" asp-for="Claims[i].Type" />
+                                    <input type="hidden" asp-for="Claims[i].Name" />
+                                    <input type="hidden" asp-for="Claims[i].Description" />
+                                    <input type="hidden" asp-for="Claims[i].Group" />
+                                    <label class="flex items-center gap-2 py-0.5 cursor-pointer" title="@item.Claim.Description">
+                                        @if (item.Claim.Type == "Admin") {
+                                            <input type="checkbox" asp-for="Claims[i].IsSelected"
+                                                   class="checkbox checkbox-xs checkbox-primary"
+                                                   data-admin-claim />
+                                        } else {
+                                            <input type="checkbox" asp-for="Claims[i].IsSelected"
+                                                   class="checkbox checkbox-xs checkbox-primary" />
+                                        }
+                                        <span class="text-sm">@item.Claim.Name</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="Form/_ActionButtons" view-data='@new ViewDataDictionary(ViewData) { { "SubmitText", "Save Changes" } }' />
+</form>
+
+@section Scripts {
+    <script>
+        // Auto-select/deselect permission checkboxes when Admin claim is toggled
+        (function() {
+            const adminCheckbox = document.querySelector('[data-admin-claim]');
+            const permissionCheckboxes = document.querySelectorAll('input[type="checkbox"][name$=".IsSelected"]:not([data-admin-claim])');
+
+            if (adminCheckbox && permissionCheckboxes.length > 0) {
+                // Check all permissions when Admin is checked
+                adminCheckbox.addEventListener('change', () => {
+                    if (adminCheckbox.checked) {
+                        permissionCheckboxes.forEach(cb => cb.checked = true);
+                    }
+                });
+
+                // Uncheck Admin when any individual permission is unchecked
+                permissionCheckboxes.forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        if (!cb.checked && adminCheckbox.checked) {
+                            adminCheckbox.checked = false;
+                        }
+                    });
+                });
+            }
+        })();
+    </script>
+}

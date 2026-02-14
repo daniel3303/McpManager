@@ -1,0 +1,76 @@
+@using McpManager.Core.Data.Models.Notifications
+@using McpManager.Web.Portal.Extensions
+@using NonFactors.Mvc.Grid
+@model IQueryable<Notification>
+
+@section PageActions {
+    <form asp-action="MarkAllAsRead">
+        <button type="submit" class="btn btn-ghost gap-2">
+            <icon name="check" size="5" />
+            <span class="hidden sm:inline">Mark All Read</span>
+        </button>
+    </form>
+    <partial name="_HelpButton" />
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Notifications</h3>
+            <p class="text-base-content/70">System notifications about important events in MCP Manager, such as sync failures, server errors, or configuration changes.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Notification Types</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><span class="badge badge-success badge-xs">Success</span> &mdash; successful operations</li>
+                <li><span class="badge badge-warning badge-xs">Warning</span> &mdash; non-critical issues</li>
+                <li><span class="badge badge-error badge-xs">Error</span> &mdash; failures requiring attention</li>
+                <li><span class="badge badge-neutral badge-xs">System</span> &mdash; system-level events</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Actions</h3>
+            <p class="text-base-content/70">Click <strong>Mark All Read</strong> to clear unread badges. Click a notification to see its full details.</p>
+        </div>
+    </div>
+}
+
+@{
+    string GetTypeBadgeClass(NotificationType type) {
+        return type switch {
+            NotificationType.Success => "badge-success",
+            NotificationType.Warning => "badge-warning",
+            NotificationType.Error => "badge-error",
+            NotificationType.System => "badge-neutral",
+            _ => "badge-info"
+        };
+    }
+}
+
+@(Html
+    .Grid(Model)
+    .Build(columns => {
+        columns.AddActions(b => {
+            b.AddShow();
+            b.AddDelete();
+        });
+        columns.Add(model => model.IsRead).Titled("Status").RenderedAs(m =>
+            m.IsRead
+                ? "<span class=\"badge badge-ghost badge-sm\">Read</span>"
+                : "<span class=\"badge badge-primary badge-sm\">Unread</span>").Encoded(false);
+        columns.Add(model => model.Title).Titled("Title").RenderedAs(m =>
+            $"<span class=\"{(m.IsRead ? "text-base-content/60" : "font-medium")}\">{m.Title}</span>").Encoded(false);
+        columns.Add(model => model.Type).Titled("Type").RenderedAs(m =>
+            $"<span class=\"badge {GetTypeBadgeClass(m.Type)} badge-sm\">{m.Type}</span>").Encoded(false);
+        columns.Add(model => model.CreationTime).Titled("Date").Formatted("{0:g}");
+    })
+    .Using(GridFilterMode.Excel)
+    .Empty("")
+    .Sortable()
+    .Pageable()
+)
+@if (!Model.Any()) {
+    <div class="mt-4">
+        <partial name="_NoRecords" model="@("No notifications yet")" />
+    </div>
+}
