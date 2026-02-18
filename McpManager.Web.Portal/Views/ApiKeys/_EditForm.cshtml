@@ -1,0 +1,10 @@
+@model McpManager.Web.Portal.Dtos.ApiKeys.ApiKeyDto
+
+<form asp-action="Edit">
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Name</legend>
+        <input class="input w-full" asp-for="Name" />
+        <span asp-validation-for="Name" class="text-error text-sm"></span>
+    </fieldset>
+    <partial name="Form/_ActionButtons" />
+</form>

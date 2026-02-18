@@ -1,0 +1,53 @@
+@using McpManager.Web.Portal.Dtos.ApiKeys
+@model ApiKeyDto
+
+@section PageActions {
+    <partial name="_HelpButton" />
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<form asp-action="Create">
+    <div asp-validation-summary="ModelOnly" class="alert alert-error mb-4"></div>
+
+    <div class="grid grid-cols-12 gap-6">
+        <div class="col-span-12 lg:col-span-7">
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-4">
+                    <h3 class="fieldset-legend">API Key Details</h3>
+                    <div class="grid grid-cols-12 gap-3">
+                        <form-field asp-for="Name" class="col-span-12" placeholder="e.g. Production, Development" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-5">
+            <div class="card bg-base-100 border border-base-200">
+                <div class="card-body p-4">
+                    <h3 class="fieldset-legend">Info</h3>
+                    <div class="text-sm text-base-content/70">
+                        <p>A unique API key will be generated automatically. The full key is shown only once after creation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="Form/_ActionButtons" view-data='@new ViewDataDictionary(ViewData) { { "SubmitText", "Create API Key" } }' />
+</form>
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Create API Key</h3>
+            <p class="text-base-content/70">Give your key a descriptive name (e.g. "Production", "Development") so you can identify it later.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Important</h3>
+            <p class="text-base-content/70">The full API key is shown <strong>only once</strong> after creation. Make sure to copy it immediately and store it securely.</p>
+        </div>
+    </div>
+}

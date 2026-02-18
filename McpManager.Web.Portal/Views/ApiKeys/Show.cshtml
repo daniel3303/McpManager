@@ -1,0 +1,147 @@
+@using McpManager.Core.Data.Models.ApiKeys
+@model ApiKey
+
+@{
+    var newKey = TempData["NewApiKey"] as string;
+}
+
+@section PageActions {
+    <a class="btn btn-ghost gap-2 show-ajax-form-modal"
+       data-url="@Url.Action("Edit", new { id = Model.Id })"
+       data-title="Rename API Key">
+        <icon name="pencil-square" size="5" />
+        <span class="hidden sm:inline">Rename</span>
+    </a>
+    <form asp-action="ToggleActive" asp-route-id="@Model.Id" class="form-confirm inline"
+          data-message="@(Model.IsActive ? "Deactivate" : "Activate") this API key?">
+        <button type="submit" class="btn btn-ghost gap-2">
+            @if (Model.IsActive) {
+                <icon name="pause" size="5" />
+                <span class="hidden sm:inline">Deactivate</span>
+            } else {
+                <icon name="play" size="5" />
+                <span class="hidden sm:inline">Activate</span>
+            }
+        </button>
+    </form>
+    <form asp-action="Delete" asp-route-id="@Model.Id" class="form-confirm inline"
+          data-message="Delete this API key? This cannot be undone.">
+        <button type="submit" class="btn btn-ghost text-error gap-2">
+            <icon name="trash" size="5" />
+            <span class="hidden sm:inline">Delete</span>
+        </button>
+    </form>
+    <partial name="_HelpButton" />
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+@if (!string.IsNullOrEmpty(newKey)) {
+    <div class="alert alert-warning mb-4">
+        <icon name="exclamation-triangle" size="5" />
+        <div>
+            <p class="font-medium">Copy your API key now — it won't be shown again in full.</p>
+            <code class="block mt-2 p-2 bg-base-200 rounded text-sm break-all select-all">@newKey</code>
+        </div>
+    </div>
+}
+
+<div class="grid grid-cols-12 gap-6">
+    <div class="col-span-12 lg:col-span-7">
+        <div class="card bg-base-100 border border-base-200">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">API Key Details</h3>
+                <div class="grid grid-cols-12 gap-3 mt-2">
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Name</label>
+                        <p class="font-medium">@Model.Name</p>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Status</label>
+                        <p>
+                            @if (Model.IsActive) {
+                                <span class="badge badge-success">Active</span>
+                            } else {
+                                <span class="badge badge-error">Inactive</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="col-span-12">
+                        <label class="text-xs text-base-content/60">Key</label>
+                        <div class="flex items-center gap-2">
+                            <p id="api-key-display" class="font-mono text-sm">@Model.Key.Substring(0, 10)...</p>
+                            <button id="btn-reveal-key" class="btn btn-ghost btn-xs"
+                                    data-url="@Url.Action("RevealKey", new { id = Model.Id })">
+                                <icon name="eye" size="4" /> Reveal
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Created</label>
+                        <p class="text-sm">@Model.CreationTime.ToString("g")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-span-12 lg:col-span-5">
+        <div class="card bg-base-100 border border-base-200">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Usage</h3>
+                <div class="text-sm text-base-content/70 mt-2">
+                    <p class="mb-2">Use this key in the <code>Authorization</code> header:</p>
+                    <pre class="bg-base-200 rounded p-2 text-xs overflow-x-auto"><code id="api-key-usage">Authorization: Bearer @(Model.Key.Substring(0, 10))...</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">API Key Details</h3>
+            <p class="text-base-content/70">View and manage this API key. For security, the full key is hidden by default.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Actions</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><strong>Reveal</strong> &mdash; show the full key (use with caution)</li>
+                <li><strong>Activate / Deactivate</strong> &mdash; toggle whether this key is accepted</li>
+                <li><strong>Delete</strong> &mdash; permanently remove the key</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Using the Key</h3>
+            <p class="text-base-content/70">Add the key as a Bearer token in the <code>Authorization</code> header when configuring your AI client to connect to MCP Manager.</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Reveal full API key on button click
+        $(function () {
+            $('#btn-reveal-key').on('click', function () {
+                var btn = $(this);
+                btn.prop('disabled', true);
+
+                $.getJSON(btn.data('url'), function (data) {
+                    if (!data.success) {
+                        showMessage(data.message, 'Warning');
+                        btn.prop('disabled', false);
+                        return;
+                    }
+
+                    // Show full key in details and usage sections
+                    $('#api-key-display').text(data.key).addClass('select-all break-all');
+                    $('#api-key-usage').text('Authorization: Bearer ' + data.key);
+                    btn.remove();
+                });
+            });
+        });
+    </script>
+}

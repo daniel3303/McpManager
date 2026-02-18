@@ -1,0 +1,375 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var servers = (List<SelectListItem>)ViewData["Servers"]!;
+    var antiforgeryTokens = Antiforgery.GetAndStoreTokens(Context);
+}
+
+@section PageActions {
+    <partial name="_HelpButton" />
+}
+
+<div class="grid grid-cols-12 gap-6">
+    <!-- Tool Configuration -->
+    <div class="col-span-12 lg:col-span-5">
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Tool Configuration</h3>
+                <div class="flex flex-col gap-3 mt-2">
+                    <div>
+                        <label class="text-xs text-base-content/60">Server</label>
+                        <select id="server-select" class="select select-bordered w-full mt-1">
+                            <option value="">Select a server...</option>
+                            @foreach (var server in servers) {
+                                <option value="@server.Value">@server.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-base-content/60">Tool</label>
+                        <select id="tool-select" class="select select-bordered w-full mt-1" disabled>
+                            <option value="">Select a tool...</option>
+                        </select>
+                        <p class="text-xs text-base-content/50 mt-1" id="tool-description"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="parameters-card" class="card bg-base-100 border border-base-200 mb-4 hidden">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Parameters</h3>
+                <div id="parameters-form" class="flex flex-col gap-3 mt-2"></div>
+            </div>
+        </div>
+
+        <button id="execute-btn" class="btn btn-primary w-full gap-2" disabled>
+            <icon name="play" size="5" />
+            Execute
+        </button>
+    </div>
+
+    <!-- Result -->
+    <div class="col-span-12 lg:col-span-7">
+        <div class="card bg-base-100 border border-base-200">
+            <div class="card-body p-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-sm">Result</h3>
+                    <span id="execution-time" class="badge badge-ghost hidden"></span>
+                </div>
+
+                <div id="result-placeholder" class="flex flex-col items-center justify-center text-base-content/40 py-8">
+                    <icon name="command-line" size="12" />
+                    <p class="mt-3 text-sm">Execute a tool to see the result</p>
+                </div>
+
+                <div id="result-loading" class="flex flex-col items-center justify-center py-8 hidden">
+                    <span class="loading loading-spinner loading-lg"></span>
+                    <p class="mt-3 text-sm text-base-content/60">Executing tool...</p>
+                </div>
+
+                <div id="result-error" class="alert alert-error mt-2 hidden">
+                    <icon name="exclamation-circle" size="5" />
+                    <span id="error-message"></span>
+                </div>
+
+                <div id="result-content" class="mt-2 hidden">
+                    <div id="result-items" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!servers.Any()) {
+    <div class="alert alert-warning mt-6">
+        <icon name="exclamation-triangle" size="5" />
+        <span>No active MCP servers found. <a asp-controller="McpServers" asp-action="Create" class="link">Create a server</a> to get started.</span>
+    </div>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">MCP Playground</h3>
+            <p class="text-base-content/70">Test MCP tools interactively without needing an AI client. Select a server, pick a tool, fill in parameters, and execute it.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">How to Use</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Select a <strong>Server</strong> from the dropdown</li>
+                <li>Choose a <strong>Tool</strong> &mdash; its parameters will appear</li>
+                <li>Fill in the required parameters and click <strong>Execute</strong></li>
+                <li>Results appear on the right with execution time</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Tips</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Array and object parameters accept JSON</li>
+                <li>If no tools appear, sync the server first</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // MCP Playground — handles server/tool selection, parameter form loading, and tool execution
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for Tom Select to initialize
+            const waitForTomSelect = setInterval(function() {
+                const serverSelect = document.getElementById('server-select');
+                const toolSelect = document.getElementById('tool-select');
+
+                if (!serverSelect.tomSelect || !toolSelect.tomSelect) return;
+                clearInterval(waitForTomSelect);
+
+                initPlayground(serverSelect, toolSelect);
+            }, 50);
+        });
+
+        function initPlayground(serverSelect, toolSelect) {
+            const toolDescription = document.getElementById('tool-description');
+            const parametersCard = document.getElementById('parameters-card');
+            const parametersForm = document.getElementById('parameters-form');
+            const executeBtn = document.getElementById('execute-btn');
+            const resultPlaceholder = document.getElementById('result-placeholder');
+            const resultLoading = document.getElementById('result-loading');
+            const resultError = document.getElementById('result-error');
+            const errorMessage = document.getElementById('error-message');
+            const resultContent = document.getElementById('result-content');
+            const resultItems = document.getElementById('result-items');
+            const executionTime = document.getElementById('execution-time');
+
+            let currentTools = [];
+
+            // Get Tom Select instances
+            const serverTs = serverSelect.tomSelect;
+            const toolTs = toolSelect.tomSelect;
+
+            // Ensure tool select starts disabled
+            toolTs.disable();
+
+            // Use Tom Select change event
+            serverTs.on('change', async function(serverId) {
+                // Clear and disable tool select
+                toolTs.clear();
+                toolTs.clearOptions();
+                toolTs.addOption({ value: '', text: 'Select a tool...' });
+                toolTs.disable();
+                toolDescription.textContent = '';
+                parametersCard.classList.add('hidden');
+                parametersForm.innerHTML = '';
+                executeBtn.disabled = true;
+                currentTools = [];
+
+                if (!serverId) return;
+
+                try {
+                    const response = await fetch(`@Url.Action("GetTools")?serverId=${serverId}`, {
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API error:', response.status, errorText);
+                        throw new Error(`Failed to fetch tools: ${response.status}`);
+                    }
+
+                    currentTools = await response.json();
+
+                    if (currentTools.length === 0) {
+                        toolDescription.textContent = 'No tools available. Try syncing the server first.';
+                    }
+
+                    currentTools.forEach(tool => {
+                        toolTs.addOption({ value: tool.name, text: tool.name });
+                    });
+
+                    toolTs.enable();
+                    toolTs.refreshOptions(false);
+                } catch (error) {
+                    console.error('Error fetching tools:', error);
+                    showError('Failed to fetch tools from server: ' + error.message);
+                }
+            });
+
+            toolTs.on('change', async function(toolName) {
+                const tool = currentTools.find(t => t.name === toolName);
+
+                if (!tool) {
+                    toolDescription.textContent = '';
+                    parametersCard.classList.add('hidden');
+                    parametersForm.innerHTML = '';
+                    executeBtn.disabled = true;
+                    return;
+                }
+
+                toolDescription.textContent = tool.description || '';
+
+                // Fetch form HTML from server
+                try {
+                    const response = await fetch(`@Url.Action("GetToolForm")?toolId=${tool.id}`, {
+                        credentials: 'same-origin'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch tool form');
+                    }
+
+                    const formHtml = await response.text();
+                    parametersForm.innerHTML = formHtml;
+
+                    // Show or hide parameters card based on content
+                    const hasFields = parametersForm.querySelector('input, select, textarea');
+                    if (hasFields) {
+                        parametersCard.classList.remove('hidden');
+                    } else {
+                        parametersCard.classList.add('hidden');
+                    }
+
+                    executeBtn.disabled = false;
+                } catch (error) {
+                    console.error('Error fetching tool form:', error);
+                    parametersCard.classList.add('hidden');
+                    parametersForm.innerHTML = '';
+                    executeBtn.disabled = true;
+                }
+            });
+
+            executeBtn.addEventListener('click', async function() {
+                const serverId = serverTs.getValue();
+                const toolName = toolTs.getValue();
+
+                if (!serverId || !toolName) return;
+
+                const arguments_ = {};
+                const inputs = parametersForm.querySelectorAll('input, select, textarea');
+
+                for (const input of inputs) {
+                    const name = input.name;
+                    const type = input.dataset.type;
+                    let value;
+
+                    if (type === 'boolean') {
+                        value = input.checked;
+                    } else if (type === 'number' || type === 'integer') {
+                        if (input.value !== '') {
+                            value = type === 'integer' ? parseInt(input.value, 10) : parseFloat(input.value);
+                        }
+                    } else if (type === 'array' || type === 'object') {
+                        if (input.value.trim()) {
+                            try {
+                                value = JSON.parse(input.value);
+                            } catch (e) {
+                                showError(`Invalid JSON for parameter "${name}"`);
+                                return;
+                            }
+                        }
+                    } else {
+                        if (input.value) value = input.value;
+                    }
+
+                    if (value !== undefined) {
+                        arguments_[name] = value;
+                    }
+                }
+
+                showLoading();
+
+                try {
+                    const response = await fetch('@Url.Action("Execute")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            '@antiforgeryTokens.HeaderName': '@antiforgeryTokens.RequestToken'
+                        },
+                        body: JSON.stringify({
+                            serverId: serverId,
+                            toolName: toolName,
+                            arguments: arguments_
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        showError(result.error || 'Tool execution failed');
+                        return;
+                    }
+
+                    showResult(result);
+                } catch (error) {
+                    console.error('Error executing tool:', error);
+                    showError('Failed to execute tool: ' + error.message);
+                }
+            });
+
+            function showLoading() {
+                resultPlaceholder.classList.add('hidden');
+                resultError.classList.add('hidden');
+                resultContent.classList.add('hidden');
+                resultLoading.classList.remove('hidden');
+                executionTime.classList.add('hidden');
+                executeBtn.disabled = true;
+            }
+
+            function showError(message) {
+                resultPlaceholder.classList.add('hidden');
+                resultLoading.classList.add('hidden');
+                resultContent.classList.add('hidden');
+                resultError.classList.remove('hidden');
+                errorMessage.textContent = message;
+                executionTime.classList.add('hidden');
+                executeBtn.disabled = false;
+            }
+
+            function showResult(result) {
+                resultPlaceholder.classList.add('hidden');
+                resultLoading.classList.add('hidden');
+                resultError.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+                executeBtn.disabled = false;
+
+                executionTime.textContent = `${result.executionTimeMs}ms`;
+                executionTime.classList.remove('hidden');
+
+                resultItems.innerHTML = '';
+
+                if (result.content && result.content.length > 0) {
+                    result.content.forEach((item, index) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'border border-base-200 rounded-lg p-3';
+
+                        if (item.type === 'text') {
+                            const pre = document.createElement('pre');
+                            pre.className = 'whitespace-pre-wrap break-words text-sm font-mono';
+                            pre.textContent = item.text || '';
+                            itemDiv.appendChild(pre);
+                        } else if (item.type === 'image' && item.data) {
+                            const img = document.createElement('img');
+                            img.src = `data:${item.mimeType || 'image/png'};base64,${item.data}`;
+                            img.className = 'max-w-full h-auto rounded';
+                            itemDiv.appendChild(img);
+                        } else {
+                            const pre = document.createElement('pre');
+                            pre.className = 'whitespace-pre-wrap break-words text-sm font-mono';
+                            pre.textContent = JSON.stringify(item, null, 2);
+                            itemDiv.appendChild(pre);
+                        }
+
+                        resultItems.appendChild(itemDiv);
+                    });
+                } else {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'text-base-content/60 text-center py-4';
+                    emptyDiv.textContent = 'No content returned';
+                    resultItems.appendChild(emptyDiv);
+                }
+            }
+
+        }
+    </script>
+}

@@ -1,0 +1,132 @@
+@using McpManager.Core.Data.Models.Mcp
+@using McpManager.Web.Portal.Dtos.Mcp
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model McpNamespaceDto
+
+@{
+    var existing = ViewData["Model"] as McpNamespace;
+    var isEdit = existing != null;
+}
+
+@section PageActions {
+    <partial name="_HelpButton" />
+    @if (isEdit) {
+        <a asp-action="Show" asp-route-id="@existing.Id" class="btn btn-ghost gap-2">
+            <icon name="arrow-left" size="5" />
+            <span class="hidden sm:inline">Back</span>
+        </a>
+    } else {
+        <a asp-action="Index" class="btn btn-ghost gap-2">
+            <icon name="arrow-left" size="5" />
+            <span class="hidden sm:inline">Back</span>
+        </a>
+    }
+}
+
+<form asp-action="@(isEdit ? "Edit" : "Create")"
+      asp-route-id="@(isEdit ? existing.Id.ToString() : null)"
+      data-submitting-message="Saving namespace...">
+
+    <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-12 md:col-span-6">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Name</legend>
+                <input asp-for="Name" class="input w-full" placeholder="My Namespace" />
+                <span asp-validation-for="Name" class="text-error text-sm"></span>
+            </fieldset>
+        </div>
+
+        <div class="col-span-12 md:col-span-6">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Slug</legend>
+                <input asp-for="Slug" class="input w-full" placeholder="my-namespace" />
+                <span asp-validation-for="Slug" class="text-error text-sm"></span>
+                <p class="text-xs text-base-content/50 mt-1">URL-safe identifier (lowercase, numbers, hyphens). Used in endpoint: <code>/mcp/ns/{slug}</code></p>
+            </fieldset>
+        </div>
+
+        <div class="col-span-12">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Description</legend>
+                <textarea asp-for="Description" class="textarea w-full" rows="3" placeholder="Optional description"></textarea>
+            </fieldset>
+        </div>
+
+        <!-- Rate Limiting -->
+        <div class="col-span-12">
+            <div class="divider text-sm">Rate Limiting</div>
+        </div>
+        <div class="col-span-12 md:col-span-4">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Enable Rate Limiting</legend>
+                <label class="flex items-center gap-3">
+                    <input asp-for="RateLimitEnabled" type="checkbox" class="toggle toggle-success" />
+                    <span class="text-sm">Enabled</span>
+                </label>
+            </fieldset>
+        </div>
+        <div class="col-span-12 md:col-span-4">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Requests per Minute</legend>
+                <input asp-for="RateLimitRequestsPerMinute" type="number" min="1" class="input w-full" />
+            </fieldset>
+        </div>
+        <div class="col-span-12 md:col-span-4">
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">Rate Limit Strategy</legend>
+                <select asp-for="RateLimitStrategy" asp-items="Html.GetEnumSelectList<RateLimitStrategy>()" class="select w-full"></select>
+            </fieldset>
+        </div>
+    </div>
+
+    <div class="flex justify-end gap-2 mt-6">
+        <button type="submit" class="btn btn-primary">
+            @(isEdit ? "Update" : "Create") Namespace
+        </button>
+    </div>
+</form>
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Namespace Settings</h3>
+            <p class="text-base-content/70">Configure the namespace name, slug, and optional rate limiting.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Slug</h3>
+            <p class="text-base-content/70">The slug is a URL-safe identifier used in the namespace endpoint: <code>/mcp/ns/{slug}</code>. It auto-generates from the name but can be customized.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Rate Limiting</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Enable rate limiting to cap requests per minute</li>
+                <li><strong>Per API Key</strong> &mdash; each key gets its own limit</li>
+                <li><strong>Global</strong> &mdash; shared limit across all keys</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-generate slug from name input
+        (function() {
+            var nameInput = document.querySelector('[name="Name"]');
+            var slugInput = document.querySelector('[name="Slug"]');
+            var isEdit = @(isEdit ? "true" : "false");
+            var slugManuallyEdited = isEdit;
+
+            slugInput.addEventListener('input', function() {
+                slugManuallyEdited = true;
+            });
+
+            nameInput.addEventListener('input', function() {
+                if (slugManuallyEdited) return;
+                slugInput.value = nameInput.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+            });
+        })();
+    </script>
+}

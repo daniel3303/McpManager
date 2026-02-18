@@ -1,0 +1,109 @@
+@using McpManager.Core.Data.Models.Mcp
+@using McpManager.Web.Portal.Dtos.Mcp
+@model List<McpToolRequest>
+
+@{
+    var page = (int)ViewData["Page"];
+    var totalPages = (int)ViewData["TotalPages"];
+    var servers = ViewData["Servers"] as List<McpServer> ?? new List<McpServer>();
+    var filters = (McpRequestSearchDto)ViewData["Filters"] ?? new McpRequestSearchDto();
+}
+
+@section PageActions {
+    <partial name="_HelpButton" />
+    <partial name="_FilterButton" model="filters" />
+}
+
+@section FilterSidebar {
+    <fieldset class="fieldset pb-0">
+        <legend class="fieldset-legend">Server</legend>
+        <select class="select w-full" asp-for="@filters.ServerId">
+            <option value="">All Servers</option>
+            @foreach (var server in servers) {
+                <option value="@server.Id">@server.Name</option>
+            }
+        </select>
+    </fieldset>
+    <fieldset class="fieldset pb-0">
+        <legend class="fieldset-legend">Status</legend>
+        <select class="select w-full" asp-for="@filters.Success">
+            <option value="">All</option>
+            <option value="true">Success</option>
+            <option value="false">Error</option>
+        </select>
+    </fieldset>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Request Log</h3>
+            <p class="text-base-content/70">View a history of all tool execution requests that have passed through MCP Manager, including status, timing, and which API key was used.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Filtering</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Filter by <strong>Server</strong> to see requests for a specific server</li>
+                <li>Filter by <strong>Status</strong> to find errors or successes</li>
+                <li>Click a request to see full details including input/output</li>
+            </ul>
+        </div>
+    </div>
+}
+
+<div class="overflow-x-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Tool</th>
+                <th>Server</th>
+                <th>API Key</th>
+                <th>Time</th>
+                <th>Date</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any()) {
+                <tr>
+                    <td colspan="7" class="text-center text-base-content/50 py-8">No requests found.</td>
+                </tr>
+            }
+            @foreach (var request in Model) {
+                <tr>
+                    <td>
+                        @if (request.Success) {
+                            <span class="badge badge-success badge-sm">OK</span>
+                        } else {
+                            <span class="badge badge-error badge-sm">Error</span>
+                        }
+                    </td>
+                    <td class="font-medium text-sm">@request.McpTool?.Name</td>
+                    <td class="text-sm text-base-content/70">@request.McpTool?.McpServer?.Name</td>
+                    <td class="text-sm text-base-content/70">@request.ApiKeyName</td>
+                    <td class="text-sm font-mono">@(request.ExecutionTimeMs)ms</td>
+                    <td class="text-sm text-base-content/70">@request.CreationTime.ToString("g")</td>
+                    <td>
+                        <a asp-action="Show" asp-route-id="@request.Id" class="btn btn-ghost btn-xs">
+                            <icon name="eye" size="4" />
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (totalPages > 1) {
+    <!-- Pagination -->
+    <div class="flex justify-center mt-4">
+        <div class="join">
+            @for (var i = 1; i <= totalPages; i++) {
+                <a asp-action="Index" asp-route-page="@i"
+                   asp-route-serverId="@filters.ServerId" asp-route-toolId="@filters.ToolId" asp-route-success="@filters.Success"
+                   class="join-item btn btn-sm @(i == page ? "btn-active" : "")">@i</a>
+            }
+        </div>
+    </div>
+}

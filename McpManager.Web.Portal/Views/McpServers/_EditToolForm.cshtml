@@ -1,0 +1,103 @@
+@using McpManager.Core.Data.Models.Mcp
+@using McpManager.Web.Portal.Dtos.Mcp
+@using McpManager.Web.Portal.Extensions
+@model McpToolEditDto
+
+@{
+    var tool = ViewData["Tool"] as McpTool;
+}
+
+<form asp-action="@Context.GetAction()" asp-controller="@Context.GetController()">
+    <div class="space-y-4">
+        <fieldset class="fieldset pb-0">
+            <legend class="fieldset-legend">Tool Name</legend>
+            <p class="font-mono text-sm font-medium">@tool.Name</p>
+        </fieldset>
+
+        @if (!string.IsNullOrWhiteSpace(tool.Description)) {
+            <fieldset class="fieldset pb-0">
+                <legend class="fieldset-legend">Original Description</legend>
+                <p class="text-sm text-base-content/60">@tool.Description</p>
+            </fieldset>
+        }
+
+        <fieldset class="fieldset pb-0">
+            <legend class="fieldset-legend">
+                Custom Description
+                <span id="desc-token-count" class="badge badge-ghost badge-xs ml-2">– tokens</span>
+            </legend>
+            <textarea asp-for="CustomDescription" class="textarea w-full token-count-input" rows="3"
+                      data-token-target="desc-token-count"
+                      placeholder="@(tool.Description ?? "Enter a custom description for MCP clients...")"></textarea>
+            <p class="text-xs text-base-content/50 mt-1">Overrides the original description when exposing this tool to MCP clients</p>
+        </fieldset>
+
+        @if (Model.Arguments.Any()) {
+            <div class="divider text-xs text-base-content/50">Arguments</div>
+
+            @for (var i = 0; i < Model.Arguments.Count; i++) {
+                <input type="hidden" asp-for="Arguments[i].Name" />
+                <input type="hidden" asp-for="Arguments[i].OriginalDescription" />
+
+                <fieldset class="fieldset pb-0">
+                    <legend class="fieldset-legend">
+                        @Model.Arguments[i].Name
+                        <span id="arg-token-count-@i" class="badge badge-ghost badge-xs ml-2">– tokens</span>
+                    </legend>
+                    @if (!string.IsNullOrWhiteSpace(Model.Arguments[i].OriginalDescription)) {
+                        <p class="text-xs text-base-content/50 mb-1">@Model.Arguments[i].OriginalDescription</p>
+                    }
+                    <input asp-for="Arguments[i].CustomDescription" class="input w-full token-count-input"
+                           data-token-target="arg-token-count-@i"
+                           placeholder="@(Model.Arguments[i].OriginalDescription ?? "Custom description...")" />
+                </fieldset>
+            }
+        }
+    </div>
+
+    <partial name="Form/_ActionButtons" />
+</form>
+
+<script>
+    // Real-time token counting — calls CountTokens endpoint on input change
+    (function() {
+        const countUrl = '@Url.Action("CountTokens", "McpServers")';
+        const inputs = document.querySelectorAll('.token-count-input');
+        const debounceTimers = new Map();
+
+        // Count tokens for a given input element and update its badge
+        function countTokens(input) {
+            const targetId = input.dataset.tokenTarget;
+            const badge = document.getElementById(targetId);
+            if (!badge) return;
+
+            const text = input.value || input.placeholder || '';
+            if (!text.trim()) {
+                badge.textContent = '0 tokens';
+                return;
+            }
+
+            fetch(countUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(r => r.json())
+            .then(data => {
+                badge.textContent = data.count + ' tokens';
+            })
+            .catch(() => {});
+        }
+
+        // Attach debounced input handlers
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                clearTimeout(debounceTimers.get(input));
+                debounceTimers.set(input, setTimeout(() => countTokens(input), 300));
+            });
+
+            // Initial count on load
+            countTokens(input);
+        });
+    })();
+</script>

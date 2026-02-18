@@ -1,0 +1,98 @@
+@using McpManager.Core.Mcp.Models
+@{
+    var importResult = ViewData["ImportResult"] as ImportResult;
+}
+
+@section PageActions {
+    <partial name="_HelpButton" />
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<form asp-action="Import" data-submitting-message="Importing servers...">
+    <div class="mb-4">
+        <p class="text-sm text-base-content/70 mb-4">
+            Paste your Claude Desktop <code>claude_desktop_config.json</code> or MCP server configuration JSON below.
+            Supported formats: Claude Desktop <code>{"mcpServers": {...}}</code> and plain object <code>{"name": {...}}</code>.
+        </p>
+
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">JSON Configuration</legend>
+            <textarea name="json" class="textarea textarea-bordered w-full font-mono text-sm" rows="16"
+                      placeholder='Paste your JSON configuration here'>@(ViewData["json"])</textarea>
+        </fieldset>
+    </div>
+
+    <div class="mb-4">
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Or upload a JSON file</legend>
+            <input type="file" accept=".json" class="file-input w-full" id="jsonFileInput" />
+        </fieldset>
+    </div>
+
+    <div class="flex justify-end">
+        <button type="submit" class="btn btn-primary">
+            <icon name="arrow-down-tray" size="5" />
+            Import Servers
+        </button>
+    </div>
+</form>
+
+@if (importResult != null && importResult.Messages.Any()) {
+    <div class="card bg-base-100 border border-base-200 mt-6">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm mb-2">Import Results</h3>
+            <div class="flex gap-3 mb-3">
+                <span class="badge badge-success">@importResult.Imported imported</span>
+                <span class="badge badge-warning">@importResult.Skipped skipped</span>
+                <span class="badge badge-error">@importResult.Errors errors</span>
+            </div>
+            <ul class="text-sm space-y-1">
+                @foreach (var msg in importResult.Messages) {
+                    <li class="text-base-content/70">@msg</li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Bulk Import</h3>
+            <p class="text-base-content/70">Import multiple MCP servers at once from a JSON configuration file.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Supported Formats</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Claude Desktop: <code>{"mcpServers": {...}}</code></li>
+                <li>Plain object: <code>{"name": {...}}</code></li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">How To</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Paste JSON directly into the text area, or upload a <code>.json</code> file</li>
+                <li>Duplicate server names will be skipped</li>
+                <li>Results show how many servers were imported, skipped, or had errors</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Read uploaded JSON file into the textarea
+        document.getElementById('jsonFileInput').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                document.querySelector('textarea[name="json"]').value = ev.target.result;
+            };
+            reader.readAsText(file);
+        });
+    </script>
+}

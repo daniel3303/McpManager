@@ -1,0 +1,62 @@
+@using McpManager.Core.Data.Models.ApiKeys
+@using McpManager.Web.Portal.Dtos.Users
+@using McpManager.Web.Portal.Extensions
+@using NonFactors.Mvc.Grid
+@model IQueryable<ApiKey>
+
+@{
+    var filters = (TextSearchDto)ViewData["Filters"] ?? new TextSearchDto();
+}
+
+@section PageActions {
+    <a asp-action="Create" class="btn btn-ghost gap-2">
+        <icon name="plus" size="5" />
+        <span class="hidden sm:inline">New</span>
+    </a>
+    <partial name="_HelpButton" />
+    <partial name="_FilterButton" model="filters" />
+}
+
+@section FilterSidebar {
+    <fieldset class="fieldset pb-0">
+        <legend class="fieldset-legend">Search</legend>
+        <input placeholder="Search API keys" class="input w-full" asp-for="@filters.Search" />
+    </fieldset>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">API Keys</h3>
+            <p class="text-base-content/70">API keys authenticate requests to MCP Manager's endpoints. Each AI client or integration should use its own key.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Managing Keys</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Click <strong>New</strong> to generate a key &mdash; the full key is shown only once</li>
+                <li>Toggle active/inactive to temporarily disable a key without deleting it</li>
+                <li>Inactive keys will be rejected at the MCP endpoint</li>
+            </ul>
+        </div>
+    </div>
+}
+
+@(Html
+    .Grid(Model)
+    .Build(columns => {
+        columns.AddActions(b => {
+            b.AddShow();
+            b.AddDelete(confirmMessage: "Delete this API key?");
+        });
+        columns.Add(model => model.Name).Titled("Name");
+        columns.Add(model => model.Key).Titled("Key")
+            .RenderedAs(m => m.Key.Substring(0, 10) + "...")
+            .CssClasses = "font-mono";
+        columns.Add(model => model.CreationTime).Titled("Created").Formatted("{0:g}");
+        columns.AddActivating();
+    })
+    .Using(GridFilterMode.Excel)
+    .Empty(await Html.PartialAsync("_NoRecords", "No API keys found."))
+    .Sortable()
+    .Pageable()
+)

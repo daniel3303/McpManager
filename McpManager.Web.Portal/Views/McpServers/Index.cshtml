@@ -1,0 +1,98 @@
+@using McpManager.Core.Data.Models.Mcp
+@using McpManager.Web.Portal.Dtos.Users
+@using McpManager.Web.Portal.Extensions
+@using NonFactors.Mvc.Grid
+@model IQueryable<McpServer>
+
+@{
+    var filters = (TextSearchDto)ViewData["Filters"] ?? new TextSearchDto();
+}
+
+@section PageActions {
+    <a asp-action="Import" class="btn btn-ghost gap-2">
+        <icon name="arrow-down-tray" size="5" />
+        <span class="hidden sm:inline">Import</span>
+    </a>
+    <a asp-action="Export" class="btn btn-ghost gap-2">
+        <icon name="arrow-up-tray" size="5" />
+        <span class="hidden sm:inline">Export</span>
+    </a>
+    <a asp-action="Create" class="btn btn-ghost gap-2">
+        <icon name="plus" size="5" />
+        <span class="hidden sm:inline">New</span>
+    </a>
+    <partial name="_HelpButton" />
+    <partial name="_FilterButton" model="filters" />
+}
+
+@section FilterSidebar {
+    <fieldset class="fieldset pb-0">
+        <legend class="fieldset-legend">Search</legend>
+        <input placeholder="Search servers" class="input w-full" asp-for="@filters.Search" />
+    </fieldset>
+}
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">MCP Servers</h3>
+            <p class="text-base-content/70">MCP servers are upstream tool providers that MCP Manager connects to and aggregates. Each server exposes one or more tools.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Getting Started</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Click <strong>New</strong> to add a server manually</li>
+                <li>Click <strong>Import</strong> to bulk-import from JSON config</li>
+                <li>Click <strong>Export</strong> to download your server list</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Transport Types</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><strong>HTTP</strong> &mdash; connects to a remote MCP endpoint via HTTP</li>
+                <li><strong>OpenAPI</strong> &mdash; exposes a REST API as MCP tools via OpenAPI spec</li>
+                <li><strong>Stdio</strong> &mdash; runs a local process (e.g. npx package)</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Syncing Tools</h3>
+            <p class="text-base-content/70">After adding a server, open it and click <strong>Sync</strong> to discover its tools. Tools are synced automatically on a schedule as well.</p>
+        </div>
+    </div>
+}
+
+@(Html
+    .Grid(Model)
+    .Build(columns => {
+        columns.AddActivating();
+        columns.AddActions(b => {
+            b.AddShow();
+            b.AddDelete();
+        });
+        columns.Add(model => model.Name).Titled("Name");
+        columns.Add(model => model.TransportType).Titled("Transport")
+            .RenderedAs(m => m.TransportType switch {
+                McpTransportType.Http => "<span class=\"badge badge-info badge-sm\">HTTP</span>",
+                McpTransportType.Sse => "<span class=\"badge badge-info badge-sm\">SSE</span>",
+                McpTransportType.OpenApi => "<span class=\"badge badge-secondary badge-sm\">OpenAPI</span>",
+                McpTransportType.Stdio => "<span class=\"badge badge-warning badge-sm\">Stdio</span>",
+                _ => "<span class=\"badge badge-ghost badge-sm\">Unknown</span>"
+            })
+            .Encoded(false).CssClasses = "w-1";
+        columns.Add(model => model.Uri).Titled("Endpoint")
+            .RenderedAs(m => {
+                if (m.TransportType is McpTransportType.Http or McpTransportType.Sse or McpTransportType.OpenApi) return m.Uri;
+                // Show npx package name if applicable, otherwise command
+                if (string.Equals(m.Command, "npx", StringComparison.OrdinalIgnoreCase) &&
+                    m.Arguments.Count >= 2 && m.Arguments[0] == "-y")
+                    return m.Arguments[1];
+                return m.Command;
+            });
+        columns.Add(model => model.LastSyncTime).Titled("Last Sync").Formatted("{0:g}");
+        columns.Add(model => model.Tools.Count).Titled("Tools");
+    })
+    .Using(GridFilterMode.Excel)
+    .Empty(await Html.PartialAsync("_NoRecords", "No MCP servers found matching the criteria."))
+    .Sortable()
+    .Pageable()
+)

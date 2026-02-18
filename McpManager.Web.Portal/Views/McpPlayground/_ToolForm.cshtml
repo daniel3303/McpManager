@@ -1,0 +1,66 @@
+@model McpManager.Web.Portal.Dtos.Mcp.ToolFormDto
+
+@if (!Model.Fields.Any()) {
+    <p class="text-xs text-base-content/50">This tool has no parameters.</p>
+} else {
+    @foreach (var field in Model.Fields) {
+        <div>
+            <label class="text-xs text-base-content/60">
+                @field.Name
+                @if (field.Required) {
+                    <span class="text-error">*</span>
+                }
+            </label>
+
+            @if (field.EnumValues.Any()) {
+                <select name="@field.Name" data-type="@field.Type" class="select select-bordered w-full mt-1"
+                        @(field.Required ? "required" : "")>
+                    <option value="">Select...</option>
+                    @foreach (var enumVal in field.EnumValues) {
+                        @if (field.Default == enumVal) {
+                            <option value="@enumVal" selected>@enumVal</option>
+                        } else {
+                            <option value="@enumVal">@enumVal</option>
+                        }
+                    }
+                </select>
+            } else if (field.Type == "boolean") {
+                <div class="flex items-center gap-2 mt-1">
+                    <input type="checkbox"
+                           name="@field.Name"
+                           data-type="boolean"
+                           class="toggle toggle-primary"
+                           @(field.Default == "True" ? "checked" : "")/>
+                </div>
+            } else if (field.Type is "number" or "integer") {
+                <input type="number" name="@field.Name"
+                       data-type="@field.Type"
+                       class="input input-bordered w-full mt-1"
+                       step="@(field.Type == "integer" ? "1" : "any")"
+                       min="@field.Minimum"
+                       max="@field.Maximum"
+                       value="@field.Default"
+                       placeholder="@field.Description"
+                       @(field.Required ? "required" : "")/>
+            } else if (field.Type is "array" or "object") {
+                <textarea name="@field.Name"
+                          data-type="@field.Type"
+                          class="textarea textarea-bordered w-full font-mono text-sm mt-1"
+                          rows="3"
+                          placeholder="@(field.Type == "array" ? "[\"item1\", \"item2\"]" : "{\"key\": \"value\"}")">@field.Default</textarea>
+            } else {
+                <input type="text"
+                       name="@field.Name"
+                       data-type="@field.Type"
+                       class="input input-bordered w-full mt-1"
+                       value="@field.Default"
+                       placeholder="@field.Description"
+                       @(field.Required ? "required" : "")/>
+            }
+
+            @if (!string.IsNullOrEmpty(field.Description)) {
+                <p class="text-xs text-base-content/50 mt-1">@field.Description</p>
+            }
+        </div>
+    }
+}

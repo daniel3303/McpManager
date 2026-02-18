@@ -1,0 +1,128 @@
+@using McpManager.Core.Data.Models.Mcp
+@model McpManager.Web.Portal.Dtos.Mcp.McpServerDto
+
+@if (Model.TransportType == McpTransportType.Http) {
+    <!-- HTTP Transport Fields -->
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Remote Connection</h3>
+            <div class="grid grid-cols-12 gap-3">
+                <form-field asp-for="Uri" class="col-span-12" placeholder="https://example.com/mcp" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Authentication</h3>
+            <div id="auth-fields-section">
+                <partial name="_AuthForm" model="Model" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Custom Headers</h3>
+            <p class="text-xs text-base-content/60 mb-3">Add custom HTTP headers to be sent with MCP requests.</p>
+            <div id="custom-headers-section">
+                <partial name="_CustomHeadersForm" model="Model" />
+            </div>
+        </div>
+    </div>
+} else if (Model.TransportType == McpTransportType.OpenApi) {
+    <!-- OpenAPI Transport Fields -->
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">REST API Connection</h3>
+            <div class="grid grid-cols-12 gap-3">
+                <form-field asp-for="Uri" class="col-span-12" placeholder="https://api.example.com" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">OpenAPI Specification</h3>
+            <div class="grid grid-cols-12 gap-3">
+                <div class="col-span-12">
+                    <fieldset class="fieldset pb-0">
+                        <legend class="fieldset-legend">Spec URL (optional)</legend>
+                        <div class="flex gap-2">
+                            <input asp-for="OpenApiSpecUrl" class="input w-full font-mono text-sm" placeholder="https://api.example.com/openapi.json" />
+                            <button type="button" id="fetch-spec-btn" class="btn btn-ghost border border-base-300 gap-1">
+                                <icon name="arrow-down-tray" size="4" />
+                                Fetch
+                            </button>
+                        </div>
+                        <span asp-validation-for="OpenApiSpecUrl" class="text-error text-sm"></span>
+                    </fieldset>
+                </div>
+                <div class="col-span-12">
+                    <fieldset class="fieldset pb-0">
+                        <legend class="fieldset-legend">Specification Content</legend>
+                        <textarea asp-for="OpenApiSpecification" class="textarea w-full font-mono text-xs" rows="12"
+                                  placeholder="Paste your OpenAPI JSON or YAML specification here..."></textarea>
+                        <span asp-validation-for="OpenApiSpecification" class="text-error text-sm"></span>
+                        <p class="text-xs text-base-content/50 mt-1">Supports OpenAPI 2.0 (Swagger), 3.0, and 3.1 in JSON or YAML format</p>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool Preview & Customization -->
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="font-semibold text-sm">Tools</h3>
+                <button type="button" id="preview-tools-btn" class="btn btn-ghost btn-sm gap-1">
+                    <icon name="eye" size="4" />
+                    Preview Tools
+                </button>
+            </div>
+            <p class="text-xs text-base-content/60 mb-3">Preview tools parsed from the OpenAPI spec. You can customize descriptions before saving.</p>
+            <div id="tools-preview-container">
+                <!-- Populated dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Authentication</h3>
+            <div id="auth-fields-section">
+                <partial name="_AuthForm" model="Model" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Custom Headers</h3>
+            <p class="text-xs text-base-content/60 mb-3">Add custom HTTP headers to be sent with API requests.</p>
+            <div id="custom-headers-section">
+                <partial name="_CustomHeadersForm" model="Model" />
+            </div>
+        </div>
+    </div>
+} else if (Model.TransportType == McpTransportType.Stdio) {
+    <!-- Stdio Transport Fields -->
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <div id="stdio-mode-section">
+                <partial name="_StdioFields" model="Model" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 border border-base-200 mb-4">
+        <div class="card-body p-4">
+            <h3 class="font-semibold text-sm">Environment Variables</h3>
+            <p class="text-xs text-base-content/60 mb-3">Set environment variables for the process.</p>
+            <div id="env-vars-section">
+                <partial name="_EnvVarsForm" model="Model" />
+            </div>
+        </div>
+    </div>
+}

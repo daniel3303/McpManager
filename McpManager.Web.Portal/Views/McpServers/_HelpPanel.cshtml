@@ -1,0 +1,36 @@
+@using McpManager.Core.Data.Models.Mcp
+@model McpManager.Web.Portal.Dtos.Mcp.McpServerDto
+
+@if (Model.TransportType == McpTransportType.Http) {
+    <div class="text-sm text-base-content/70">
+        <p class="mb-2">Configure a remote HTTP MCP server:</p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><strong>URI</strong>: The MCP server endpoint URL</li>
+            <li><strong>None</strong>: No authentication</li>
+            <li><strong>Basic</strong>: Username and password</li>
+            <li><strong>Bearer</strong>: JWT or access token</li>
+            <li><strong>API Key</strong>: Custom header with key</li>
+        </ul>
+    </div>
+} else if (Model.TransportType == McpTransportType.OpenApi) {
+    <div class="text-sm text-base-content/70">
+        <p class="mb-2">Expose a REST API as MCP tools:</p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><strong>Base URL</strong>: The API's root URL (e.g. <code>https://api.example.com</code>)</li>
+            <li><strong>Spec URL</strong>: Optionally fetch the OpenAPI spec from a URL</li>
+            <li><strong>Specification</strong>: The OpenAPI spec content (JSON or YAML)</li>
+            <li>Each API operation becomes an MCP tool</li>
+            <li>Auth and headers are applied to all API requests</li>
+        </ul>
+    </div>
+} else if (Model.TransportType == McpTransportType.Stdio) {
+    <div class="text-sm text-base-content/70">
+        <p class="mb-2">Configure a local MCP server:</p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><strong>NPM Package</strong>: Enter the npm package name (runs via <code>npx -y</code>)</li>
+            <li><strong>Additional Args</strong>: Extra arguments passed after the package name</li>
+            <li><strong>Advanced</strong>: Toggle to use a custom command instead of npx</li>
+            <li><strong>Env Vars</strong>: Environment variables for the process</li>
+        </ul>
+    </div>
+}

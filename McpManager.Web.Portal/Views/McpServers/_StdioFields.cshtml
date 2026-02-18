@@ -1,0 +1,47 @@
+@using McpManager.Core.Data.Models.Mcp
+@model McpManager.Web.Portal.Dtos.Mcp.McpServerDto
+
+<!-- Simple/Advanced toggle -->
+<div class="flex items-center justify-between mb-3">
+    <h3 class="font-semibold text-sm">Local Server</h3>
+    <label class="flex items-center gap-2 cursor-pointer">
+        <span class="text-xs text-base-content/60">Advanced</span>
+        <input type="checkbox" asp-for="UseAdvancedCommand" class="toggle toggle-sm stdio-advanced-toggle" />
+    </label>
+</div>
+
+@if (Model.UseAdvancedCommand) {
+    <!-- Advanced mode: Custom command -->
+    <div class="grid grid-cols-12 gap-3">
+        <form-field asp-for="Command" class="col-span-12" placeholder="e.g. python, node, /usr/local/bin/custom" />
+        <div class="col-span-12">
+            <fieldset class="fieldset pb-0">
+                <legend class="fieldset-legend">Arguments</legend>
+                <textarea asp-for="ArgumentsText" class="textarea w-full font-mono text-sm" rows="3"
+                          placeholder="One argument per line"></textarea>
+                <span asp-validation-for="ArgumentsText" class="text-error text-sm"></span>
+                <p class="text-xs text-base-content/50 mt-1">One argument per line</p>
+            </fieldset>
+        </div>
+    </div>
+} else {
+    <!-- Simple mode: NPM package -->
+    <div class="grid grid-cols-12 gap-3">
+        <form-field asp-for="NpmPackage" class="col-span-12" placeholder="e.g. @@modelcontextprotocol/server-filesystem" />
+        <div class="col-span-12">
+            <fieldset class="fieldset pb-0">
+                <legend class="fieldset-legend">Additional Arguments</legend>
+                <textarea asp-for="ExtraArguments" class="textarea w-full font-mono text-sm" rows="2"
+                          placeholder="One argument per line&#10;e.g. /path/to/allowed/dir"></textarea>
+                <span asp-validation-for="ExtraArguments" class="text-error text-sm"></span>
+                <p class="text-xs text-base-content/50 mt-1">Arguments passed after the package name, one per line</p>
+            </fieldset>
+        </div>
+    </div>
+}
+
+<!-- Command preview -->
+<div class="mt-3 pt-3 border-t border-base-200">
+    <label class="text-xs text-base-content/60">Command Preview</label>
+    <pre id="command-preview" class="bg-base-200 rounded-lg p-3 text-sm font-mono text-base-content/70 whitespace-pre-wrap mt-1">Fill in the fields above to see the command preview</pre>
+</div>

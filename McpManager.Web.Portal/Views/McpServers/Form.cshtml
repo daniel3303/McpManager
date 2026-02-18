@@ -1,0 +1,579 @@
+@using McpManager.Core.Data.Models.Authentication
+@using McpManager.Core.Data.Models.Mcp
+@using McpManager.Web.Portal.Dtos.Mcp
+@using McpManager.Web.Portal.Extensions
+@model McpServerDto
+
+@{
+    var server = ViewData["Model"] as McpServer;
+    var isEdit = server != null;
+}
+
+@section PageActions {
+    <partial name="_HelpButton" />
+    @if (isEdit) {
+        <a asp-action="Show" asp-route-id="@server.Id" class="btn btn-ghost gap-2">
+            <icon name="arrow-left" size="5" />
+            <span class="hidden sm:inline">Back</span>
+        </a>
+    } else {
+        <a asp-action="Index" class="btn btn-ghost gap-2">
+            <icon name="arrow-left" size="5" />
+            <span class="hidden sm:inline">Back</span>
+        </a>
+    }
+}
+
+@if (!isEdit) {
+    <div class="flex gap-2 mb-4">
+        <button type="button" class="btn btn-ghost btn-sm gap-2" onclick="document.getElementById('import-modal').showModal(); document.getElementById('import-source').value = 'cursor'; document.getElementById('import-json').value = '';">
+            <icon name="arrow-down-tray" size="4" />
+            From Cursor Config
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm gap-2" onclick="document.getElementById('import-modal').showModal(); document.getElementById('import-source').value = 'opencode'; document.getElementById('import-json').value = '';">
+            <icon name="arrow-down-tray" size="4" />
+            From Opencode Config
+        </button>
+    </div>
+
+    <dialog id="import-modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg mb-4">Import MCP Server Config</h3>
+            <input type="hidden" id="import-source" value="" />
+            <fieldset class="fieldset pb-0">
+                <legend class="fieldset-legend">Paste JSON Configuration</legend>
+                <textarea id="import-json" class="textarea textarea-bordered w-full font-mono text-sm" rows="10"
+                          placeholder='{ "mcpServers": { ... } }'></textarea>
+            </fieldset>
+            <p id="import-error" class="text-error text-sm mt-2 hidden"></p>
+            <div class="modal-action">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('import-modal').close()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="importConfig()">Import</button>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+}
+
+<form id="server-form" asp-action="@Context.GetAction()">
+    <div asp-validation-summary="ModelOnly" class="alert alert-error mb-4"></div>
+
+    <div class="grid grid-cols-12 gap-6">
+        <!-- Server Details -->
+        <div class="col-span-12 lg:col-span-7">
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-4">
+                    <h3 class="font-semibold text-sm">Server Details</h3>
+                    <div class="grid grid-cols-12 gap-3">
+                        <form-field asp-for="Name" class="col-span-12 md:col-span-6" />
+                        <div class="col-span-12 md:col-span-6">
+                            <fieldset class="fieldset pb-0">
+                                <legend class="fieldset-legend">Transport Type</legend>
+                                @{
+                                    var transportGroups = new[] {
+                                        ("MCP Transports", new[] { (McpTransportType.Http, "HTTP"), (McpTransportType.Stdio, "Stdio"), (McpTransportType.Sse, "SSE") }),
+                                        ("Custom Transports", new[] { (McpTransportType.OpenApi, "OpenAPI") })
+                                    };
+                                }
+                                <select asp-for="TransportType" class="select select-bordered w-full" required>
+                                    <option value="">Select transport type...</option>
+                                    @foreach (var (groupLabel, options) in transportGroups) {
+                                        <optgroup label="@groupLabel">
+                                            @foreach (var (value, label) in options) {
+                                                if (Model.TransportType == value) {
+                                                    <option value="@value" selected>@label</option>
+                                                } else {
+                                                    <option value="@value">@label</option>
+                                                }
+                                            }
+                                        </optgroup>
+                                    }
+                                </select>
+                                <span asp-validation-for="TransportType" class="text-error text-sm"></span>
+                            </fieldset>
+                        </div>
+                        <form-field asp-for="Description" class="col-span-12" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transport-specific fields rendered via AJAX partial -->
+            <div id="transport-fields-section">
+                <partial name="_TransportFields" model="Model" />
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="col-span-12 lg:col-span-5">
+            @if (isEdit) {
+                <div class="card bg-base-100 border border-base-200 mb-4">
+                    <div class="card-body p-4">
+                        <h3 class="font-semibold text-sm">Server Info</h3>
+                        <div class="flex flex-col gap-2 text-sm">
+                            <div>
+                                <label class="text-xs text-base-content/60">Status</label>
+                                <p>
+                                    @if (server.IsActive) {
+                                        <span class="badge badge-success">Active</span>
+                                    } else {
+                                        <span class="badge badge-error">Inactive</span>
+                                    }
+                                </p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-base-content/60">Created</label>
+                                <p>@server.CreationTime.ToString("g")</p>
+                            </div>
+                            <div>
+                                <label class="text-xs text-base-content/60">Last Sync</label>
+                                <p>
+                                    @if (server.LastSyncTime.HasValue) {
+                                        @server.LastSyncTime.Value.ToString("g")
+                                    } else {
+                                        <span class="text-base-content/50">Never synced</span>
+                                    }
+                                </p>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(server.LastError)) {
+                                <div>
+                                    <label class="text-xs text-base-content/60">Last Error</label>
+                                    <p class="text-error text-xs">@server.LastError</p>
+                                </div>
+                            }
+                            <div>
+                                <label class="text-xs text-base-content/60">Tools</label>
+                                <p>@server.Tools.Count tools synced</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card bg-base-100 border border-base-200">
+                <div class="card-body p-4">
+                    <h3 class="font-semibold text-sm">Help</h3>
+                    <div id="help-panel-section">
+                        <partial name="_HelpPanel" model="Model" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="Form/_ActionButtons" view-data='@new ViewDataDictionary(ViewData) { { "SubmitText", isEdit ? "Save Changes" : "Create Server" } }' />
+</form>
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Server Configuration</h3>
+            <p class="text-base-content/70">Configure a new MCP server or edit an existing one. Choose the transport type first to see the relevant fields.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Transport Types</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li><strong>Remote (HTTP)</strong> &mdash; provide a URL and optional authentication (Bearer token, Basic auth, or API key)</li>
+                <li><strong>Local (Stdio)</strong> &mdash; run a local command. Use simple mode for npx packages or advanced mode for custom commands</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Quick Import</h3>
+            <p class="text-base-content/70">Use the <strong>From Cursor Config</strong> or <strong>From Opencode Config</strong> buttons to paste JSON from your existing tool configuration.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Environment Variables</h3>
+            <p class="text-base-content/70">For Stdio servers, add environment variables (e.g. API keys) that the process needs at runtime.</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // AJAX handler: re-render transport fields and help panel when transport type changes
+        $(document)
+            .off("change.transport", '[name="TransportType"]')
+            .on("change.transport", '[name="TransportType"]', function() {
+                var values = $("#server-form").serialize();
+                $.post("@Url.Action("UpdateTransportFields")", values, function(data) {
+                    $("#transport-fields-section").html(data);
+                    initCommandPreview();
+                });
+                $.post("@Url.Action("UpdateHelpPanel")", values, function(data) {
+                    $("#help-panel-section").html(data);
+                });
+            });
+
+        // AJAX handler: re-render auth fields when auth type changes
+        $(document)
+            .off("change.auth", ".auth-type-select")
+            .on("change.auth", ".auth-type-select", function() {
+                var values = $("#server-form").serialize();
+                $.post("@Url.Action("UpdateAuthFields")", values, function(data) {
+                    $("#auth-fields-section").html(data);
+                });
+            });
+
+        // AJAX handler: re-render stdio fields when advanced toggle changes
+        $(document)
+            .off("change.stdioMode", ".stdio-advanced-toggle")
+            .on("change.stdioMode", ".stdio-advanced-toggle", function() {
+                var values = $("#server-form").serialize();
+                $.post("@Url.Action("UpdateStdioMode")", values, function(data) {
+                    $("#stdio-mode-section").html(data);
+                    initCommandPreview();
+                });
+            });
+
+        // Live command preview for Stdio fields — debounces input changes and fetches preview from server
+        var commandPreviewTimer = null;
+        function initCommandPreview() {
+            var previewEl = document.getElementById('command-preview');
+            if (!previewEl) return;
+
+            // Trigger initial preview
+            updateCommandPreview();
+        }
+
+        function updateCommandPreview() {
+            var previewEl = document.getElementById('command-preview');
+            if (!previewEl) return;
+
+            var form = document.getElementById('server-form');
+            var formData = new FormData(form);
+
+            fetch('@Url.Action("PreviewCommand")', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                previewEl.textContent = data.preview || 'Fill in the fields above to see the command preview';
+            })
+            .catch(function() {
+                previewEl.textContent = 'Fill in the fields above to see the command preview';
+            });
+        }
+
+        // Debounced input handler for command preview fields
+        $(document)
+            .off("input.cmdPreview", '[name="NpmPackage"], [name="ExtraArguments"], [name="Command"], [name="ArgumentsText"]')
+            .on("input.cmdPreview", '[name="NpmPackage"], [name="ExtraArguments"], [name="Command"], [name="ArgumentsText"]', function() {
+                clearTimeout(commandPreviewTimer);
+                commandPreviewTimer = setTimeout(updateCommandPreview, 300);
+            });
+
+        // Initialize command preview on page load if Stdio is selected
+        initCommandPreview();
+
+        // Import MCP server config from Cursor or Opencode JSON
+        function importConfig() {
+            var errorEl = document.getElementById('import-error');
+            var source = document.getElementById('import-source').value;
+            var raw = document.getElementById('import-json').value.trim();
+            errorEl.classList.add('hidden');
+
+            var json;
+            try {
+                json = JSON.parse(raw);
+            } catch (e) {
+                errorEl.textContent = 'Invalid JSON: ' + e.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            var name, config;
+            try {
+                if (source === 'cursor') {
+                    // Cursor format: { "mcpServers": { "name": { command, args, url, headers } } }
+                    var servers = json.mcpServers || json;
+                    var entries = Object.entries(servers);
+                    if (entries.length === 0) throw new Error('No server entries found');
+                    name = entries[0][0];
+                    config = entries[0][1];
+                } else {
+                    // Opencode format: { "mcp": { "name": { command, type, url, headers } } }
+                    var servers = json.mcp || json;
+                    var entries = Object.entries(servers);
+                    if (entries.length === 0) throw new Error('No server entries found');
+                    name = entries[0][0];
+                    config = entries[0][1];
+
+                    // Normalize opencode format: command array -> command + args
+                    if (Array.isArray(config.command)) {
+                        var parts = config.command;
+                        config.command = parts[0] || '';
+                        config.args = parts.slice(1);
+                    }
+                }
+            } catch (e) {
+                errorEl.textContent = 'Could not parse config: ' + e.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            // Set name
+            setField('Name', name);
+
+            if (config.url) {
+                // HTTP transport — set values then trigger AJAX update
+                setField('Uri', config.url);
+                setTransportAndUpdate('Http', function() {
+                    // After transport fields are rendered, populate headers
+                    if (config.headers && typeof config.headers === 'object') {
+                        // Add headers via sequential AJAX calls
+                        addImportedHeaders(config.headers);
+                    }
+                });
+            } else if (config.command) {
+                // Stdio transport
+                var cmd = config.command;
+                var args = config.args || [];
+
+                if (cmd === 'npx' && args.length > 0 && args[0] === '-y') {
+                    // Simple npx mode — set values before triggering transport update
+                    setField('NpmPackage', args[1] || '');
+                    setField('ExtraArguments', args.slice(2).join('\n'));
+                    setField('UseAdvancedCommand', false);
+                } else {
+                    // Advanced mode
+                    setField('Command', cmd);
+                    setField('ArgumentsText', args.join('\n'));
+                    setField('UseAdvancedCommand', true);
+                }
+
+                // Set env vars before transport update so they survive the round-trip
+                if (config.env && typeof config.env === 'object') {
+                    var envEntries = Object.entries(config.env);
+                    envEntries.forEach(function(entry, i) {
+                        setField('EnvVars[' + i + '].Key', entry[0]);
+                        setField('EnvVars[' + i + '].Value', entry[1]);
+                    });
+                }
+
+                setTransportAndUpdate('Stdio');
+            }
+
+            document.getElementById('import-modal').close();
+        }
+
+        // Set a form field value by name, creating a hidden input if it doesn't exist
+        function setField(name, value) {
+            var el = document.querySelector('[name="' + name + '"]');
+            if (el) {
+                if (el.type === 'checkbox') {
+                    el.checked = !!value;
+                } else {
+                    el.value = value || '';
+                }
+            } else {
+                // Create hidden input so it's included in form serialization
+                var hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = name;
+                hidden.value = value || '';
+                document.getElementById('server-form').appendChild(hidden);
+            }
+        }
+
+        // Set transport type and trigger AJAX update to render the correct fields
+        function setTransportAndUpdate(type, callback) {
+            var select = document.querySelector('[name="TransportType"]');
+            if (!select) return;
+
+            // Find the option value matching the type text
+            var option = Array.from(select.options).find(function(o) { return o.text === type || o.value === type; });
+            var val = option ? option.value : type;
+
+            if (select.tomSelect) {
+                select.tomSelect.setValue(val, true); // silent=true to prevent double trigger
+            } else {
+                select.value = val;
+            }
+
+            // Trigger the AJAX update with current form values
+            var values = $("#server-form").serialize();
+            $.post("@Url.Action("UpdateTransportFields")", values, function(data) {
+                $("#transport-fields-section").html(data);
+                initCommandPreview();
+                if (callback) callback();
+            });
+            $.post("@Url.Action("UpdateHelpPanel")", values, function(data) {
+                $("#help-panel-section").html(data);
+            });
+        }
+
+        // Import headers by posting to AddHeader repeatedly, then setting values
+        function addImportedHeaders(headers) {
+            var entries = Object.entries(headers);
+            if (!entries.length) return;
+
+            // Set header values in form fields (they may already exist from transport render)
+            entries.forEach(function(entry, i) {
+                setField('CustomHeaders[' + i + '].Key', entry[0]);
+                setField('CustomHeaders[' + i + '].Value', entry[1]);
+            });
+
+            // Re-render custom headers section with populated values
+            var values = $("#server-form").serialize();
+            $.post("@Url.Action("AddHeader")", values, function(data) {
+                $("#custom-headers-section").html(data);
+            });
+        }
+
+        // Preview OpenAPI tools — parses the spec and renders editable tool descriptions
+        $(document)
+            .off("click.openApiPreview", "#preview-tools-btn")
+            .on("click.openApiPreview", "#preview-tools-btn", function() {
+                var specTextarea = document.querySelector('[name="OpenApiSpecification"]');
+                var spec = specTextarea && specTextarea.value.trim();
+                if (!spec) {
+                    showMessage('Please enter an OpenAPI specification first', 'Warning');
+                    return;
+                }
+
+                var btn = $(this);
+                btn.addClass('loading').prop('disabled', true);
+
+                var form = document.getElementById('server-form');
+                var token = form.querySelector('input[name="AntiForgery"]');
+                var tokenValue = token ? token.value : '';
+
+                fetch('@Url.Action("PreviewOpenApiTools")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'openApiSpecification=' + encodeURIComponent(spec) + '&AntiForgery=' + encodeURIComponent(tokenValue)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        renderToolsPreview(data.tools);
+                        showMessage(data.tools.length + ' tools found', 'Success');
+                    } else {
+                        showMessage('Failed to parse spec: ' + data.error, 'Error');
+                    }
+                })
+                .catch(function(err) {
+                    showMessage('Failed to parse spec: ' + err.message, 'Error');
+                })
+                .finally(function() {
+                    btn.removeClass('loading').prop('disabled', false);
+                });
+            });
+
+        var countTokensUrl = '@Url.Action("CountTokens")';
+
+        // Render tool preview cards with editable custom description fields and token counts
+        function renderToolsPreview(tools) {
+            var container = document.getElementById('tools-preview-container');
+            if (!tools.length) {
+                container.innerHTML = '<p class="text-sm text-base-content/50">No tools found in specification.</p>';
+                return;
+            }
+
+            container.innerHTML = tools.map(function(tool, i) {
+                return '<div class="border border-base-200 rounded-lg p-3 mb-2">' +
+                    '<input type="hidden" name="ToolCustomizations[' + i + '].ToolName" value="' + escapeAttr(tool.name) + '" />' +
+                    '<input type="hidden" name="ToolCustomizations[' + i + '].OriginalDescription" value="' + escapeAttr(tool.description || '') + '" />' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                    '<h4 class="font-mono text-sm font-medium">' + escapeHtml(tool.name) + '</h4>' +
+                    '<span id="preview-token-' + i + '" class="badge badge-ghost badge-xs">– tokens</span>' +
+                    '</div>' +
+                    '<p class="text-xs text-base-content/50 mb-2">' + escapeHtml(tool.description || '') + '</p>' +
+                    '<input type="text" name="ToolCustomizations[' + i + '].CustomDescription" ' +
+                    'class="input input-sm w-full" data-token-target="preview-token-' + i + '" ' +
+                    'placeholder="' + escapeAttr(tool.description || 'Custom description...') + '" ' +
+                    'value="' + escapeAttr(tool.description || '') + '" />' +
+                    '</div>';
+            }).join('');
+
+            attachTokenCounting(container);
+        }
+
+        // Attach debounced token counting to inputs with data-token-target
+        function attachTokenCounting(container) {
+            var inputs = container.querySelectorAll('[data-token-target]');
+            var timers = new Map();
+
+            inputs.forEach(function(input) {
+                function count() {
+                    var badge = document.getElementById(input.dataset.tokenTarget);
+                    var text = input.value || '';
+                    if (!text.trim()) { badge.textContent = '0 tokens'; return; }
+
+                    var tokenEl = document.querySelector('#server-form input[name="AntiForgery"]');
+                    fetch(countTokensUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': tokenEl ? tokenEl.value : ''
+                        },
+                        body: JSON.stringify({ text: text })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) { badge.textContent = data.count + ' tokens'; })
+                    .catch(function() {});
+                }
+
+                input.addEventListener('input', function() {
+                    clearTimeout(timers.get(input));
+                    timers.set(input, setTimeout(count, 300));
+                });
+
+                count();
+            });
+        }
+
+        // Fetch OpenAPI spec from URL and populate the textarea
+        $(document)
+            .off("click.fetchSpec", "#fetch-spec-btn")
+            .on("click.fetchSpec", "#fetch-spec-btn", function() {
+                var urlInput = document.querySelector('[name="OpenApiSpecUrl"]');
+                var specTextarea = document.querySelector('[name="OpenApiSpecification"]');
+                var url = urlInput && urlInput.value.trim();
+
+                if (!url) {
+                    showMessage('Please enter a Spec URL first', 'Warning');
+                    return;
+                }
+
+                var btn = $(this);
+                btn.addClass('loading').prop('disabled', true);
+
+                var form = document.getElementById('server-form');
+                var token = form.querySelector('input[name="AntiForgery"]');
+                var tokenValue = token ? token.value : '';
+
+                fetch('@Url.Action("FetchOpenApiSpec")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'url=' + encodeURIComponent(url) + '&AntiForgery=' + encodeURIComponent(tokenValue)
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        specTextarea.value = data.content;
+                        showMessage('Specification fetched successfully', 'Success');
+                    } else {
+                        showMessage('Failed to fetch spec: ' + data.error, 'Error');
+                    }
+                })
+                .catch(function(err) {
+                    showMessage('Failed to fetch spec: ' + err.message, 'Error');
+                })
+                .finally(function() {
+                    btn.removeClass('loading').prop('disabled', false);
+                });
+            });
+
+        // Escape HTML attribute values to prevent XSS
+        function escapeAttr(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+}

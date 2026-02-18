@@ -1,0 +1,43 @@
+@model McpManager.Web.Portal.Dtos.Mcp.McpServerDto
+
+<div class="lines-wrapper flex flex-col gap-2">
+    @for (var index = 0; index < Model.EnvVars.Count; index++) {
+        <div class="env-var-row flex gap-2 items-center">
+            <input asp-for="EnvVars[index].Key" class="input input-sm flex-1 font-mono" placeholder="KEY" />
+            <input asp-for="EnvVars[index].Value" class="input input-sm flex-1 font-mono" placeholder="Value" />
+            <button type="button" class="btn btn-ghost btn-sm btn-square remove-env-var-btn" data-index="@index">
+                <icon name="x-mark" size="4" />
+            </button>
+        </div>
+    }
+</div>
+
+<button type="button" class="btn btn-ghost btn-sm gap-2 self-start mt-2 add-env-var-btn">
+    <icon name="plus" size="4" />
+    Add Variable
+</button>
+
+<script>
+    // Add/remove environment variable rows via AJAX (same pattern as _CustomHeadersForm)
+    window.addEventListener("load", function() {
+        $(document)
+            .off("click.envVars", ".add-env-var-btn")
+            .on("click.envVars", ".add-env-var-btn", function() {
+                var values = $("#server-form").serialize();
+                $.post("@Url.Action("AddEnvVar", "McpServers")", values, function(data) {
+                    $("#env-vars-section").html(data);
+                });
+            });
+
+        $(document)
+            .off("click.envVars", ".remove-env-var-btn")
+            .on("click.envVars", ".remove-env-var-btn", function() {
+                var index = $(this).data("index");
+                var values = $("#server-form").serializeArray();
+                values.push({ name: "index", value: index });
+                $.post("@Url.Action("RemoveEnvVar", "McpServers")", values, function(data) {
+                    $("#env-vars-section").html(data);
+                });
+            });
+    });
+</script>

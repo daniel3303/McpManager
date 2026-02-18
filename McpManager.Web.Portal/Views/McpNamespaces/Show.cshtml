@@ -1,0 +1,256 @@
+@using McpManager.Core.Data.Models.Mcp
+@model McpNamespace
+
+@{
+    var availableServers = (List<McpServer>)ViewData["AvailableServers"];
+    var nsServers = (List<McpNamespaceServer>)ViewData["NsServers"];
+    var nsToolsByServer = (Dictionary<Guid, List<McpNamespaceTool>>)ViewData["NsToolsByServer"];
+}
+
+@section PageActions {
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-ghost gap-2">
+        <icon name="pencil-square" size="5" />
+        <span class="hidden sm:inline">Edit</span>
+    </a>
+    <partial name="_HelpButton" />
+    <a asp-action="Index" class="btn btn-ghost gap-2">
+        <icon name="arrow-left" size="5" />
+        <span class="hidden sm:inline">Back</span>
+    </a>
+}
+
+<div class="grid grid-cols-12 gap-6">
+    <!-- Namespace Details -->
+    <div class="col-span-12 lg:col-span-7">
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm">Namespace Details</h3>
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Name</label>
+                        <p class="font-medium">@Model.Name</p>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Status</label>
+                        <p>
+                            @if (Model.IsActive) {
+                                <span class="badge badge-success">Active</span>
+                            } else {
+                                <span class="badge badge-error">Inactive</span>
+                            }
+                        </p>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Slug</label>
+                        <p class="font-mono text-sm">@Model.Slug</p>
+                    </div>
+                    <div class="col-span-12 md:col-span-6">
+                        <label class="text-xs text-base-content/60">Endpoint</label>
+                        <p class="font-mono text-sm break-all">@ViewData["McpEndpoint"]</p>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Description)) {
+                        <div class="col-span-12">
+                            <label class="text-xs text-base-content/60">Description</label>
+                            <p>@Model.Description</p>
+                        </div>
+                    }
+                    <div class="col-span-12">
+                        <label class="text-xs text-base-content/60">Created</label>
+                        <p class="text-sm">@Model.CreationTime.ToString("g")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Server Panel -->
+    <div class="col-span-12 lg:col-span-5">
+        <div class="card bg-base-100 border border-base-200 mb-4">
+            <div class="card-body p-4">
+                <h3 class="font-semibold text-sm mb-2">Add Server</h3>
+                @if (availableServers.Any()) {
+                    <form asp-action="AddServer" asp-route-id="@Model.Id">
+                        <div class="flex gap-2">
+                            <select name="serverId" class="select select-sm flex-1">
+                                @foreach (var server in availableServers) {
+                                    <option value="@server.Id">@server.Name</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                        </div>
+                    </form>
+                } else {
+                    <p class="text-sm text-base-content/50">All servers have been added to this namespace.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<partial name="_ConnectTools" model="@((string)ViewData["McpEndpoint"])" />
+
+<!-- Servers & Tools -->
+<div class="card bg-base-100 border border-base-200">
+    <div class="card-body p-4">
+        <h3 class="font-semibold text-sm mb-3">Servers (@nsServers.Count)</h3>
+
+        @if (nsServers.Any()) {
+            <div class="flex flex-col gap-4">
+                @foreach (var nsServer in nsServers.OrderBy(s => s.McpServer.Name)) {
+                    var nsTools = nsToolsByServer.GetValueOrDefault(nsServer.Id, []);
+                    <div class="border border-base-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" class="toggle toggle-success toggle-sm ns-server-toggle"
+                                       data-id="@nsServer.Id"
+                                       @(nsServer.IsActive ? "checked" : "") />
+                                <div>
+                                    <h4 class="font-medium text-sm">@nsServer.McpServer.Name</h4>
+                                    @if (nsServer.McpServer.TransportType == McpTransportType.Http) {
+                                        <span class="badge badge-info badge-xs">Remote</span>
+                                    } else {
+                                        <span class="badge badge-warning badge-xs">Local</span>
+                                    }
+                                </div>
+                            </div>
+                            <form class="form-confirm" data-message="Remove this server from the namespace?" asp-action="RemoveServer" asp-route-id="@Model.Id">
+                                <input type="hidden" name="nsServerId" value="@nsServer.Id" />
+                                <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                    <icon name="x-mark" size="4" />
+                                </button>
+                            </form>
+                        </div>
+
+                        @if (nsTools.Any()) {
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th class="w-1">Enabled</th>
+                                            <th>Tool</th>
+                                            <th>Name Override</th>
+                                            <th>Description Override</th>
+                                            <th class="w-1"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var nsTool in nsTools.OrderBy(t => t.McpTool.Name)) {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" class="toggle toggle-success toggle-xs ns-tool-toggle"
+                                                           data-id="@nsTool.Id"
+                                                           @(nsTool.IsEnabled ? "checked" : "") />
+                                                </td>
+                                                <td>
+                                                    <span class="font-mono text-xs">@nsTool.McpTool.Name</span>
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="input input-xs w-full ns-tool-name-override"
+                                                           data-id="@nsTool.Id"
+                                                           value="@nsTool.NameOverride"
+                                                           placeholder="@nsTool.McpTool.Name" />
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="input input-xs w-full ns-tool-desc-override"
+                                                           data-id="@nsTool.Id"
+                                                           value="@nsTool.DescriptionOverride"
+                                                           placeholder="Original" />
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-ghost btn-xs ns-tool-save" data-id="@nsTool.Id" title="Save overrides">
+                                                        <icon name="check" size="4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        } else {
+                            <p class="text-sm text-base-content/50">No tools synced for this server.</p>
+                        }
+                    </div>
+                }
+            </div>
+        } else {
+            <partial name="_NoRecords" model="@("No servers in this namespace. Add a server above.")" />
+        }
+    </div>
+</div>
+
+@section HelpSidebar {
+    <div class="space-y-4 text-sm">
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Namespace Details</h3>
+            <p class="text-base-content/70">View and manage the servers and tools in this namespace. The endpoint URL at the top is what you configure in your AI client.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Managing Servers</h3>
+            <ul class="list-disc list-inside text-base-content/70 space-y-1">
+                <li>Use <strong>Add Server</strong> to include a server in this namespace</li>
+                <li>Toggle servers on/off to temporarily enable or disable them</li>
+                <li>Remove a server with the X button</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Tool Overrides</h3>
+            <p class="text-base-content/70">For each tool, you can toggle it on/off and override its name and description. This lets you customize how tools appear to AI clients without changing the upstream server.</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-sm mb-1">Connect to Your Tools</h3>
+            <p class="text-base-content/70">Use the connection snippets below to point your AI client at this namespace's endpoint.</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Toggle server active status
+        $(document).on('change', '.ns-server-toggle', function() {
+            var toggle = $(this);
+            var id = toggle.data('id');
+            var isActive = toggle.is(':checked');
+            $.post('@Url.Action("ToggleServer")', {
+                nsServerId: id,
+                isActive: isActive,
+                AntiForgery: $('input[name="AntiForgery"]').val()
+            }).fail(function() {
+                showMessage('Failed to toggle server', -1);
+                toggle.prop('checked', !isActive);
+            });
+        });
+
+        // Toggle tool enabled status
+        $(document).on('change', '.ns-tool-toggle', function() {
+            var toggle = $(this);
+            var id = toggle.data('id');
+            var isEnabled = toggle.is(':checked');
+            $.post('@Url.Action("ToggleTool")', {
+                nsToolId: id,
+                isEnabled: isEnabled,
+                AntiForgery: $('input[name="AntiForgery"]').val()
+            }).fail(function() {
+                showMessage('Failed to toggle tool', -1);
+                toggle.prop('checked', !isEnabled);
+            });
+        });
+
+        // Save tool overrides
+        $(document).on('click', '.ns-tool-save', function() {
+            var id = $(this).data('id');
+            var row = $(this).closest('tr');
+            var nameOverride = row.find('.ns-tool-name-override').val();
+            var descOverride = row.find('.ns-tool-desc-override').val();
+            $.post('@Url.Action("EditToolOverride")', {
+                nsToolId: id,
+                nameOverride: nameOverride,
+                descriptionOverride: descOverride,
+                AntiForgery: $('input[name="AntiForgery"]').val()
+            }).done(function() {
+                showMessage('Override saved', 1);
+            }).fail(function() {
+                showMessage('Failed to save override', -1);
+            });
+        });
+    </script>
+}
