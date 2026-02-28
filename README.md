@@ -24,35 +24,6 @@ docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanag
 
 ---
 
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [What is MCP Manager?](#what-is-mcp-manager)
-- [Key Features](#key-features)
-  - [Unified MCP Proxy](#unified-mcp-proxy)
-  - [Multi-Transport Support](#multi-transport-support)
-  - [Namespace Organization](#namespace-organization)
-  - [Tool Customization & Control](#tool-customization--control)
-  - [Health Checks & Notifications](#health-checks--notifications)
-  - [Rate Limiting](#rate-limiting)
-  - [Interactive Playground](#interactive-playground)
-  - [API Key Management](#api-key-management)
-  - [Import from Config](#import-from-config)
-  - [OpenAPI-to-MCP](#openapi-to-mcp)
-  - [Request Logging & Live Streaming](#request-logging--live-streaming)
-  - [User Management](#user-management)
-- [Screenshots](#screenshots)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Run Locally](#run-locally)
-  - [Docker](#docker)
-- [Connecting Your AI Tools](#connecting-your-ai-tools)
-- [Configuration](#configuration)
-  - [Transport Types](#transport-types)
-  - [Environment Variables](#environment-variables)
-- [Tech Stack](#tech-stack)
-- [License](#license)
-
 ## What is MCP Manager?
 
 MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and your MCP servers. Instead of configuring each server individually in every client, you register them once in MCP Manager and connect your clients to a single endpoint.
