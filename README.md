@@ -38,9 +38,6 @@ MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and
 |---|---|
 | ![Dashboard](docs/screenshots/dashboard.png) **Dashboard** — Overview of servers, tools, and API keys | ![MCP Servers](docs/screenshots/mcp-servers.png) **Servers** — Manage upstream MCP servers |
 | ![Create Server](docs/screenshots/mcp-server-create.png) **Create Server** — Add servers with multi-transport support | ![Playground](docs/screenshots/mcp-playground.png) **Playground** — Execute tools interactively |
-| ![Namespaces](docs/screenshots/mcp-namespaces.png) **Namespaces** — Organize tools with rate limiting | ![API Keys](docs/screenshots/api-keys.png) **API Keys** — Scoped key management |
-| ![Request Log](docs/screenshots/mcp-requests.png) **Request Log** — Audit trail | ![Live Logs](docs/screenshots/live-logs.png) **Live Logs** — Real-time streaming |
-| ![Import](docs/screenshots/mcp-server-import.png) **Import** — Import from Claude Desktop / Cursor | ![Users](docs/screenshots/users.png) **Users** — User management |
 
 ## Getting Started
 
