@@ -24,6 +24,35 @@ docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanag
 
 ---
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [What is MCP Manager?](#what-is-mcp-manager)
+- [Key Features](#key-features)
+  - [Unified MCP Proxy](#unified-mcp-proxy)
+  - [Multi-Transport Support](#multi-transport-support)
+  - [Namespace Organization](#namespace-organization)
+  - [Tool Customization & Control](#tool-customization--control)
+  - [Health Checks & Notifications](#health-checks--notifications)
+  - [Rate Limiting](#rate-limiting)
+  - [Interactive Playground](#interactive-playground)
+  - [API Key Management](#api-key-management)
+  - [Import from Config](#import-from-config)
+  - [OpenAPI-to-MCP](#openapi-to-mcp)
+  - [Request Logging & Live Streaming](#request-logging--live-streaming)
+  - [User Management](#user-management)
+- [Screenshots](#screenshots)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Run Locally](#run-locally)
+  - [Docker](#docker)
+- [Connecting Your AI Tools](#connecting-your-ai-tools)
+- [Configuration](#configuration)
+  - [Transport Types](#transport-types)
+  - [Environment Variables](#environment-variables)
+- [Tech Stack](#tech-stack)
+- [License](#license)
+
 ## What is MCP Manager?
 
 MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and your MCP servers. Instead of configuring each server individually in every client, you register them once in MCP Manager and connect your clients to a single endpoint.
@@ -34,20 +63,41 @@ MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and
 
 ## Key Features
 
-- **Unified MCP Proxy** — Aggregate tools from multiple MCP servers into a single `/mcp` endpoint
-- **Multi-Transport Support** — Connect to HTTP, Stdio, and OpenAPI-based servers
-- **Namespace Organization** — Group tools into namespaces with independent rate limiting
-- **Interactive Playground** — Test and execute MCP tools directly from the browser
-- **API Key Management** — Scoped API keys with namespace-level access control
-- **Import from Config** — Import servers from Cursor, Claude Desktop, or Opencode configurations
-- **Request Logging** — Full audit trail of every MCP request
-- **Live Log Streaming** — Real-time log viewer for debugging
-- **User Management** — Multi-user support with role-based access
-- **OpenAPI-to-MCP** — Automatically convert OpenAPI specs into MCP tools
-- **Health Checks & Notifications** — Automatic server health monitoring with user notifications on failure
-- **Tool Customization** — Override tool names, descriptions, and parameter schemas per namespace
-- **Tool Enable/Disable** — Fine-grained control over individual tools per namespace
-- **Configurable Rate Limiting** — Per-namespace rate limits with PerApiKey, PerIp, or Global strategies
+### Unified MCP Proxy
+Aggregate tools from all registered upstream MCP servers into a single `/mcp` endpoint. Connect your AI clients once and access every tool from every server — no per-server configuration needed.
+
+### Multi-Transport Support
+Connect to remote servers via HTTP/SSE, run local CLI tools via Stdio, or auto-convert REST APIs from OpenAPI specs. Each transport supports its own authentication methods (Bearer, API key, Basic auth, environment variables).
+
+### Namespace Organization
+Group MCP servers into logical namespaces with slug-based routing (e.g., `/mcp/namespaces/my-namespace`). Each namespace has independent rate limiting, API key scoping, and per-tool configuration.
+
+### Tool Customization & Control
+Override tool names, descriptions, and parameter schemas per server or per namespace. Enable or disable individual tools so the same server can expose different tool sets in different namespaces.
+
+### Health Checks & Notifications
+Automatic connectivity checks verify each server is reachable via its configured transport. When a server goes down, all active users receive in-app notifications.
+
+### Rate Limiting
+Per-namespace rate limiting with three strategies: PerApiKey (limit per unique key), PerIp (limit by client IP), or Global (single namespace-wide limit). Configure requests-per-minute thresholds independently for each namespace.
+
+### Interactive Playground
+Test and execute MCP tools directly from the browser. The playground dynamically builds input forms from each tool's JSON schema, including type-aware fields for enums, numbers, and nested objects.
+
+### API Key Management
+Generate scoped API keys (prefixed `mcpm_`) with optional namespace restrictions. Keys are used as Bearer tokens for authenticating MCP client connections and are tracked per-request for auditing.
+
+### Import from Config
+Import server configurations from Claude Desktop, Cursor, or Opencode JSON formats. Existing servers are detected and skipped automatically, with a summary of imported, skipped, and errored entries.
+
+### OpenAPI-to-MCP
+Point MCP Manager at any OpenAPI 3.x spec (JSON or YAML) and it automatically converts each operation into a callable MCP tool. Path, query, and body parameters are mapped to tool input schemas.
+
+### Request Logging & Live Streaming
+Every tool execution is recorded with parameters, response, success status, and execution time. A real-time log viewer streams entries with filters for server, log level, and time range.
+
+### User Management
+Multi-user support with ASP.NET Identity. Claims-based authorization controls access to features like server management, API keys, and the playground. Admins can create users, reset passwords, and manage permissions.
 
 ## Screenshots
 
