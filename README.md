@@ -17,7 +17,7 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 ## Quick Start
 
 ```bash
-docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanager:latest
+docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
 ```
 
 > Open [http://localhost:5057](http://localhost:5057) — a default admin account is created on first run.
@@ -103,7 +103,7 @@ The app will be available at `http://localhost:5057`. A default admin account is
 ### Docker
 
 ```bash
-docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanager:latest
+docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
 ```
 
 The SQLite database and logs are stored in `/app/data`.
@@ -137,13 +137,6 @@ Generate API keys from the **API Keys** page in the admin panel.
 | **HTTP** | Connect to remote MCP servers via HTTP/SSE | Bearer token, API key, Basic auth |
 | **Stdio** | Run local MCP servers as CLI processes | Environment variables |
 | **OpenAPI** | Auto-convert OpenAPI specs to MCP tools | Bearer token, API key, Basic auth |
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ASPNETCORE_URLS` | Listening URLs | `http://+:8080` |
-| `ConnectionStrings__DefaultConnection` | SQLite connection string | `data/mcpmanager.db` |
 
 ## Tech Stack
 
