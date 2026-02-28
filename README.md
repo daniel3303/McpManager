@@ -16,15 +16,28 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and your MCP servers. Instead of configuring each server individually in every client, you register them once in MCP Manager and connect your clients to a single endpoint.
 
 ```mermaid
-graph LR
-    A[Claude Code] --> P[MCP Manager<br/>proxy]
-    B[Cursor] --> P
-    C[Windsurf] --> P
-    D[...] --> P
-    P --> S1[MCP Server A]
-    P --> S2[MCP Server B]
-    P --> S3[MCP Server C]
-    P --> S4[...]
+flowchart TB
+    subgraph clients ["AI Clients"]
+        A["Claude Code"]
+        B["Cursor"]
+        C["Windsurf"]
+        D["Codex"]
+    end
+
+    subgraph mcpmanager ["MCP Manager"]
+        proxy["Unified MCP Endpoint\n/mcp"]
+    end
+
+    subgraph upstream ["Upstream Sources"]
+        S1["MCP Servers\n(HTTP / Stdio)"]
+        S2["OpenAPI Specs"]
+        S3["Custom Web Endpoints"]
+    end
+
+    clients -- "Single API Key" --> proxy
+    proxy --> S1
+    proxy --> S2
+    proxy --> S3
 ```
 
 ## Key Features
