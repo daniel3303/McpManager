@@ -11,6 +11,16 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 
 ---
 
+## Quick Start
+
+```bash
+docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanager:latest
+```
+
+> Open [http://localhost:5057](http://localhost:5057) — a default admin account is created on first run.
+
+---
+
 ## What is MCP Manager?
 
 MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and your MCP servers. Instead of configuring each server individually in every client, you register them once in MCP Manager and connect your clients to a single endpoint.
@@ -31,6 +41,10 @@ MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and
 - **Live Log Streaming** — Real-time log viewer for debugging
 - **User Management** — Multi-user support with role-based access
 - **OpenAPI-to-MCP** — Automatically convert OpenAPI specs into MCP tools
+- **Health Checks & Notifications** — Automatic server health monitoring with user notifications on failure
+- **Tool Customization** — Override tool names, descriptions, and parameter schemas per namespace
+- **Tool Enable/Disable** — Fine-grained control over individual tools per namespace
+- **Configurable Rate Limiting** — Per-namespace rate limits with PerApiKey, PerIp, or Global strategies
 
 ## Screenshots
 
@@ -50,7 +64,7 @@ MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/McpManager.git
+git clone https://github.com/daniel3303/McpManager.git
 cd McpManager
 
 # Build the frontend
