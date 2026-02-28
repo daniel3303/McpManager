@@ -28,7 +28,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/mcpmanager
+          images: daniel3303/mcpmanager
           tags: |
             type=raw,value=latest
             type=semver,pattern={{version}}
