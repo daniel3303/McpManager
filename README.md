@@ -82,8 +82,7 @@ The app will be available at `http://localhost:5057`. A default admin account is
 ### Docker
 
 ```bash
-docker build -t mcpmanager .
-docker run -p 5057:8080 -v mcpmanager-data:/app/data mcpmanager
+docker run -p 5057:8080 -v mcpmanager-data:/app/data ghcr.io/daniel3303/mcpmanager:latest
 ```
 
 The SQLite database and logs are stored in `/app/data`.
