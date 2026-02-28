@@ -15,14 +15,16 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 
 MCP Manager sits between your AI tools (Claude Code, Cursor, Windsurf, etc.) and your MCP servers. Instead of configuring each server individually in every client, you register them once in MCP Manager and connect your clients to a single endpoint.
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│ Claude Code  │────▶│              │────▶│ MCP Server A    │
-│ Cursor       │────▶│  MCP Manager │────▶│ MCP Server B    │
-│ Windsurf     │────▶│   (proxy)    │────▶│ MCP Server C    │
-│ ...          │────▶│              │────▶│ ...              │
-└─────────────┘     └──────────────┘     └─────────────────┘
-   AI Clients         Single Endpoint       Upstream Servers
+```mermaid
+graph LR
+    A[Claude Code] --> P[MCP Manager<br/>proxy]
+    B[Cursor] --> P
+    C[Windsurf] --> P
+    D[...] --> P
+    P --> S1[MCP Server A]
+    P --> S2[MCP Server B]
+    P --> S3[MCP Server C]
+    P --> S4[...]
 ```
 
 ## Key Features
@@ -124,18 +126,6 @@ Generate API keys from the **API Keys** page in the admin panel.
 - **MCP SDK**: ModelContextProtocol v0.6.0-preview.1
 - **Auth**: ASP.NET Identity
 - **Logging**: Serilog (console + rolling file)
-
-## Project Structure
-
-```
-McpManager/
-├── McpManager.Web.Portal/      # ASP.NET Core MVC app (entry point)
-├── McpManager.Core.Mcp/        # MCP client/server management, tool sync
-├── McpManager.Core.Identity/   # Authentication & authorization
-├── McpManager.Core.Repositories/ # Data access layer
-├── McpManager.Core.Data/       # EF Core context & entity models
-└── Dockerfile
-```
 
 ## License
 
