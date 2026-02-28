@@ -4,7 +4,7 @@
 
 Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools, and expose them through a single unified MCP endpoint. Connect once, access everything.
 
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://hub.docker.com/r/daniel3303/mcpmanager)
 ![AI Agents](https://img.shields.io/badge/AI_Agents-Ready-FF6F00)
 ![LLM Tools](https://img.shields.io/badge/LLM_Tools-Gateway-8A2BE2)
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
