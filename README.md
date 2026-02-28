@@ -8,6 +8,10 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 ![MCP](https://img.shields.io/badge/MCP-v0.6-blue)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
+![AI Agents](https://img.shields.io/badge/AI_Agents-Ready-FF6F00)
+![LLM Tools](https://img.shields.io/badge/LLM_Tools-Gateway-8A2BE2)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-Supported-6BA539?logo=openapiinitiative)
+![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Yes-green)
 
 ---
 
