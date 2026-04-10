@@ -108,6 +108,18 @@ docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:lates
 
 The SQLite database and logs are stored in `/app/data`.
 
+#### Host Network Mode
+
+If you need MCP Manager to connect to MCP servers running on the host machine (e.g., Stdio servers or services on `localhost`), use host networking:
+
+```bash
+docker run --network host -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
+```
+
+With `--network host` the container shares the host's network stack directly, so MCP Manager listens on port `8080` and can reach any local service. The `-p` flag is not needed in this mode.
+
+> **Note:** Host network mode is only supported on Linux. On macOS and Windows (Docker Desktop), use `host.docker.internal` instead of `localhost` to reach host services.
+
 ## Connecting Your AI Tools
 
 Once MCP Manager is running, connect your AI tools to the unified endpoint:
