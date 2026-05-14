@@ -24,7 +24,12 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
 ```
 
-> Open [http://localhost:5057](http://localhost:5057) — a default admin account is created on first run.
+Open [http://localhost:5057](http://localhost:5057) and sign in with the default admin account:
+
+- **Email:** `admin@mcpmanager.local`
+- **Password:** `123456`
+
+> Change the password immediately after first login from the user menu → **Change Password**.
 
 ---
 
@@ -83,12 +88,32 @@ Multi-user support with ASP.NET Identity. Claims-based authorization controls ac
 
 ## Getting Started
 
-### Prerequisites
+### Docker
+
+```bash
+docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
+```
+
+The SQLite database and logs are stored in `/app/data`. Sign in with the default admin account shown in the [Quick Start](#quick-start) and change the password immediately.
+
+#### Host Network Mode
+
+If you need MCP Manager to connect to MCP servers running on the host machine (e.g., Stdio servers or services on `localhost`), use host networking:
+
+```bash
+docker run --network host -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
+```
+
+With `--network host` the container shares the host's network stack directly, so MCP Manager listens on port `8080` and can reach any local service. The `-p` flag is not needed in this mode.
+
+> **Note:** Host network mode is only supported on Linux. On macOS and Windows (Docker Desktop), use `host.docker.internal` instead of `localhost` to reach host services.
+
+### Run Locally
+
+#### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js](https://nodejs.org/) (for frontend build)
-
-### Run Locally
 
 ```bash
 # Clone the repository
@@ -102,27 +127,7 @@ cd McpManager.Web.Portal && npm install && npx vite build && cd ..
 dotnet run --project McpManager.Web.Portal
 ```
 
-The app will be available at `http://localhost:5057`. A default admin account is created on first run.
-
-### Docker
-
-```bash
-docker run -p 5057:8080 -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
-```
-
-The SQLite database and logs are stored in `/app/data`.
-
-#### Host Network Mode
-
-If you need MCP Manager to connect to MCP servers running on the host machine (e.g., Stdio servers or services on `localhost`), use host networking:
-
-```bash
-docker run --network host -v mcpmanager-data:/app/data daniel3303/mcpmanager:latest
-```
-
-With `--network host` the container shares the host's network stack directly, so MCP Manager listens on port `8080` and can reach any local service. The `-p` flag is not needed in this mode.
-
-> **Note:** Host network mode is only supported on Linux. On macOS and Windows (Docker Desktop), use `host.docker.internal` instead of `localhost` to reach host services.
+The app will be available at `http://localhost:5057`. Sign in with the default admin account shown in the [Quick Start](#quick-start) and change the password immediately.
 
 ## Connecting Your AI Tools
 
