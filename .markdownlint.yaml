@@ -1,0 +1,16 @@
+default: true
+
+# Line length — prose wrapping is a per-editor choice, not a CI concern.
+MD013: false
+
+# Multiple headings with the same content — fine in CHANGELOG ("### Added" repeats per version).
+MD024: false
+
+# Inline HTML — needed for shields.io badges and centered banners.
+MD033: false
+
+# Blank lines around headings — README intentionally tight-packs feature lists.
+MD022: false
+
+# Blank lines around lists — same reason as MD022.
+MD032: false

@@ -45,7 +45,7 @@ createFlatPicker(document.querySelectorAll(selector));
 
 // Mutation observer to apply flat pickr to new elements
 const observer = new MutationObserver(function (mutations, observer) {
-    // Look through all mutations that just occured
+    // Look through all mutations that just occurred
     for (let i = 0; i < mutations.length; ++i) {
         // Look through all added nodes of this mutation
         for (let j = 0; j < mutations[i].addedNodes.length; ++j) {
