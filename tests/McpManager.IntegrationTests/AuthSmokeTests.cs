@@ -22,7 +22,8 @@ public class AuthSmokeTests : IClassFixture<WebFactoryFixture>
         response.EnsureSuccessStatusCode();
 
         var html = await response.Content.ReadAsStringAsync(ct);
-        var document = await BrowsingContext.New(Configuration.Default)
+        var document = await BrowsingContext
+            .New(Configuration.Default)
             .OpenAsync(req => req.Content(html), ct);
 
         // Asserting on the resolved action attribute catches typos in
