@@ -4,7 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace McpManager.Core.Data.Models;
 
 [Table("AppSettings")]
-public class AppSettings {
+public class AppSettings
+{
     [Key]
     public int Id { get; set; } = 1;
 

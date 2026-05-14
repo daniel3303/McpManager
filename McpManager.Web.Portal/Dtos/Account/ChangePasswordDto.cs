@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace McpManager.Web.Portal.Dtos.Account;
 
-public class ChangePasswordDto {
+public class ChangePasswordDto
+{
     [Required(ErrorMessage = "This field is required.")]
     [DataType(DataType.Password)]
     [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]

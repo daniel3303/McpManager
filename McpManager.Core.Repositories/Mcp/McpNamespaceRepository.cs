@@ -4,9 +4,10 @@ using McpManager.Core.Repositories.Contracts;
 
 namespace McpManager.Core.Repositories.Mcp;
 
-public class McpNamespaceRepository : BaseRepository<McpNamespace> {
-    public McpNamespaceRepository(ApplicationDbContext dbContext) : base(dbContext) { }
+public class McpNamespaceRepository : BaseRepository<McpNamespace>
+{
+    public McpNamespaceRepository(ApplicationDbContext dbContext)
+        : base(dbContext) { }
 
-    public IQueryable<McpNamespace> GetBySlug(string slug) =>
-        GetAll().Where(n => n.Slug == slug);
+    public IQueryable<McpNamespace> GetBySlug(string slug) => GetAll().Where(n => n.Slug == slug);
 }

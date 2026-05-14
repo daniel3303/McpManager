@@ -4,6 +4,8 @@ using McpManager.Core.Repositories.Contracts;
 
 namespace McpManager.Core.Repositories;
 
-public class AppSettingsRepository : BaseRepository<AppSettings> {
-    public AppSettingsRepository(ApplicationDbContext dbContext) : base(dbContext) { }
+public class AppSettingsRepository : BaseRepository<AppSettings>
+{
+    public AppSettingsRepository(ApplicationDbContext dbContext)
+        : base(dbContext) { }
 }

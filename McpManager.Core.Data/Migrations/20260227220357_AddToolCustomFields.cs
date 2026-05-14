@@ -15,25 +15,23 @@ namespace McpManager.Core.Data.Migrations
                 table: "McpTools",
                 type: "TEXT",
                 maxLength: 2000,
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "CustomInputSchema",
                 table: "McpTools",
                 type: "TEXT",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "CustomDescription",
-                table: "McpTools");
+            migrationBuilder.DropColumn(name: "CustomDescription", table: "McpTools");
 
-            migrationBuilder.DropColumn(
-                name: "CustomInputSchema",
-                table: "McpTools");
+            migrationBuilder.DropColumn(name: "CustomInputSchema", table: "McpTools");
         }
     }
 }

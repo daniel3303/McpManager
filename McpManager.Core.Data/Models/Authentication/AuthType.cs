@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace McpManager.Core.Data.Models.Authentication;
 
-public enum AuthType {
+public enum AuthType
+{
     [Display(Name = "None")]
     None = 0,
 
@@ -16,5 +17,5 @@ public enum AuthType {
     ApiKey = 3,
 
     [Display(Name = "OAuth 2.0")]
-    OAuth2 = 4
+    OAuth2 = 4,
 }

@@ -5,7 +5,8 @@ namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpNamespaceServers")]
 [Index(nameof(McpNamespaceId), nameof(McpServerId), IsUnique = true)]
-public class McpNamespaceServer {
+public class McpNamespaceServer
+{
     public Guid Id { get; set; } = Guid.NewGuid();
     public bool IsActive { get; set; } = true;
 

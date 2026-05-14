@@ -8,7 +8,8 @@ namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpNamespaces")]
 [Index(nameof(Slug), IsUnique = true)]
-public class McpNamespace : IActivable {
+public class McpNamespace : IActivable
+{
     public Guid Id { get; set; } = Guid.NewGuid();
     public bool IsActive { get; set; } = true;
 

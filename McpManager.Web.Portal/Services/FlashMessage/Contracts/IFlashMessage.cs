@@ -1,6 +1,7 @@
 namespace McpManager.Web.Portal.Services.FlashMessage.Contracts;
 
-public interface IFlashMessage {
+public interface IFlashMessage
+{
     List<IFlashMessageModel> Peek();
     List<IFlashMessageModel> Retrieve();
     void Clear();

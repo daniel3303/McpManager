@@ -4,8 +4,10 @@ using McpManager.Core.Repositories.Contracts;
 
 namespace McpManager.Core.Repositories.Mcp;
 
-public class McpNamespaceServerRepository : BaseRepository<McpNamespaceServer> {
-    public McpNamespaceServerRepository(ApplicationDbContext dbContext) : base(dbContext) { }
+public class McpNamespaceServerRepository : BaseRepository<McpNamespaceServer>
+{
+    public McpNamespaceServerRepository(ApplicationDbContext dbContext)
+        : base(dbContext) { }
 
     public IQueryable<McpNamespaceServer> GetByNamespace(McpNamespace ns) =>
         GetAll().Where(s => s.McpNamespaceId == ns.Id);

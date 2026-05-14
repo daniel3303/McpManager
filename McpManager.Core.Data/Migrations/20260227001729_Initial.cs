@@ -19,12 +19,13 @@ namespace McpManager.Core.Data.Migrations
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
                     Key = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ApiKeys", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "McpServers",
@@ -33,18 +34,54 @@ namespace McpManager.Core.Data.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    Description = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 1000,
+                        nullable: true
+                    ),
                     TransportType = table.Column<int>(type: "INTEGER", nullable: false),
                     Uri = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
                     Auth_Type = table.Column<int>(type: "INTEGER", nullable: false),
-                    Auth_Username = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Auth_Password = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    Auth_Token = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
-                    Auth_ApiKeyName = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Auth_ApiKeyValue = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
-                    Auth_ClientId = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
-                    Auth_ClientSecret = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    Auth_TokenEndpoint = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
+                    Auth_Username = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 255,
+                        nullable: true
+                    ),
+                    Auth_Password = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 500,
+                        nullable: true
+                    ),
+                    Auth_Token = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 2000,
+                        nullable: true
+                    ),
+                    Auth_ApiKeyName = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 255,
+                        nullable: true
+                    ),
+                    Auth_ApiKeyValue = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 2000,
+                        nullable: true
+                    ),
+                    Auth_ClientId = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 255,
+                        nullable: true
+                    ),
+                    Auth_ClientSecret = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 500,
+                        nullable: true
+                    ),
+                    Auth_TokenEndpoint = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 2000,
+                        nullable: true
+                    ),
                     Auth_Scope = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     CustomHeaders = table.Column<string>(type: "TEXT", nullable: true),
                     Command = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
@@ -52,12 +89,13 @@ namespace McpManager.Core.Data.Migrations
                     EnvironmentVariables = table.Column<string>(type: "TEXT", nullable: true),
                     LastSyncTime = table.Column<DateTime>(type: "TEXT", nullable: true),
                     LastError = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_McpServers", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "Roles",
@@ -65,13 +103,18 @@ namespace McpManager.Core.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true)
+                    NormalizedName = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 256,
+                        nullable: true
+                    ),
+                    ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Roles", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "Users",
@@ -85,9 +128,17 @@ namespace McpManager.Core.Data.Migrations
                     SidebarCollapsed = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 256,
+                        nullable: true
+                    ),
                     Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 256,
+                        nullable: true
+                    ),
                     EmailConfirmed = table.Column<bool>(type: "INTEGER", nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: true),
                     SecurityStamp = table.Column<string>(type: "TEXT", nullable: true),
@@ -97,12 +148,13 @@ namespace McpManager.Core.Data.Migrations
                     TwoFactorEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
                     LockoutEnd = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
                     LockoutEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "INTEGER", nullable: false)
+                    AccessFailedCount = table.Column<int>(type: "INTEGER", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
-                });
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "McpTools",
@@ -110,11 +162,19 @@ namespace McpManager.Core.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 2000, nullable: true),
-                    InputSchema = table.Column<string>(type: "TEXT", maxLength: 8000, nullable: true),
+                    Description = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 2000,
+                        nullable: true
+                    ),
+                    InputSchema = table.Column<string>(
+                        type: "TEXT",
+                        maxLength: 8000,
+                        nullable: true
+                    ),
                     TotalRequests = table.Column<long>(type: "INTEGER", nullable: false),
                     CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    McpServerId = table.Column<Guid>(type: "TEXT", nullable: false)
+                    McpServerId = table.Column<Guid>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -124,18 +184,21 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.McpServerId,
                         principalTable: "McpServers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "RoleClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table
+                        .Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     RoleId = table.Column<Guid>(type: "TEXT", nullable: false),
                     ClaimType = table.Column<string>(type: "TEXT", nullable: true),
-                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -145,18 +208,21 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.RoleId,
                         principalTable: "Roles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "UserClaims",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table
+                        .Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                     ClaimType = table.Column<string>(type: "TEXT", nullable: true),
-                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true)
+                    ClaimValue = table.Column<string>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -166,8 +232,10 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "UserLogins",
@@ -176,7 +244,7 @@ namespace McpManager.Core.Data.Migrations
                     LoginProvider = table.Column<string>(type: "TEXT", nullable: false),
                     ProviderKey = table.Column<string>(type: "TEXT", nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "TEXT", nullable: true),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false)
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -186,15 +254,17 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "UserRoles",
                 columns: table => new
                 {
                     UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    RoleId = table.Column<Guid>(type: "TEXT", nullable: false)
+                    RoleId = table.Column<Guid>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -204,14 +274,17 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.RoleId,
                         principalTable: "Roles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Cascade
+                    );
                     table.ForeignKey(
                         name: "FK_UserRoles_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "UserTokens",
@@ -220,18 +293,28 @@ namespace McpManager.Core.Data.Migrations
                     UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                     LoginProvider = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Value = table.Column<string>(type: "TEXT", nullable: true)
+                    Value = table.Column<string>(type: "TEXT", nullable: true),
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    table.PrimaryKey(
+                        "PK_UserTokens",
+                        x => new
+                        {
+                            x.UserId,
+                            x.LoginProvider,
+                            x.Name,
+                        }
+                    );
                     table.ForeignKey(
                         name: "FK_UserTokens_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "McpToolRequests",
@@ -244,7 +327,7 @@ namespace McpManager.Core.Data.Migrations
                     Response = table.Column<string>(type: "TEXT", nullable: true),
                     Success = table.Column<bool>(type: "INTEGER", nullable: false),
                     ExecutionTimeMs = table.Column<long>(type: "INTEGER", nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -254,109 +337,164 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.McpToolId,
                         principalTable: "McpTools",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CreationTime", "Email", "EmailConfirmed", "GivenName", "IsActive", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "SidebarCollapsed", "Surname", "Theme", "TwoFactorEnabled", "UserName" },
-                values: new object[] { new Guid("00000001-0000-0000-0000-000000000000"), 0, "1d979655-fed0-411b-b2ad-66345adceab3", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "daniel.oliveira@comudel.com", true, "Daniel", true, false, null, "DANIEL.OLIVEIRA@COMUDEL.COM", "DANIEL.OLIVEIRA@COMUDEL.COM", "AQAAAAEAACcQAAAAEM0hozIbn2LDkSW9sK1Mkl6OSdNaqQmY4B76PqGY97iuUep8RG5+zPjIWpiq8o0XVg==", null, false, "U7LXVLANYGF3IKRETLA5YF4SJ4Z3FEA3", false, "Oliveira", 0, false, "daniel.oliveira@comudel.com" });
+                columns: new[]
+                {
+                    "Id",
+                    "AccessFailedCount",
+                    "ConcurrencyStamp",
+                    "CreationTime",
+                    "Email",
+                    "EmailConfirmed",
+                    "GivenName",
+                    "IsActive",
+                    "LockoutEnabled",
+                    "LockoutEnd",
+                    "NormalizedEmail",
+                    "NormalizedUserName",
+                    "PasswordHash",
+                    "PhoneNumber",
+                    "PhoneNumberConfirmed",
+                    "SecurityStamp",
+                    "SidebarCollapsed",
+                    "Surname",
+                    "Theme",
+                    "TwoFactorEnabled",
+                    "UserName",
+                },
+                values: new object[]
+                {
+                    new Guid("00000001-0000-0000-0000-000000000000"),
+                    0,
+                    "1d979655-fed0-411b-b2ad-66345adceab3",
+                    new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    "daniel.oliveira@comudel.com",
+                    true,
+                    "Daniel",
+                    true,
+                    false,
+                    null,
+                    "DANIEL.OLIVEIRA@COMUDEL.COM",
+                    "DANIEL.OLIVEIRA@COMUDEL.COM",
+                    "AQAAAAEAACcQAAAAEM0hozIbn2LDkSW9sK1Mkl6OSdNaqQmY4B76PqGY97iuUep8RG5+zPjIWpiq8o0XVg==",
+                    null,
+                    false,
+                    "U7LXVLANYGF3IKRETLA5YF4SJ4Z3FEA3",
+                    false,
+                    "Oliveira",
+                    0,
+                    false,
+                    "daniel.oliveira@comudel.com",
+                }
+            );
 
             migrationBuilder.InsertData(
                 table: "UserClaims",
                 columns: new[] { "Id", "ClaimType", "ClaimValue", "UserId" },
-                values: new object[] { 1, "Admin", "Admin", new Guid("00000001-0000-0000-0000-000000000000") });
+                values: new object[]
+                {
+                    1,
+                    "Admin",
+                    "Admin",
+                    new Guid("00000001-0000-0000-0000-000000000000"),
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_McpToolRequests_McpToolId",
                 table: "McpToolRequests",
-                column: "McpToolId");
+                column: "McpToolId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_McpTools_McpServerId_Name",
                 table: "McpTools",
                 columns: new[] { "McpServerId", "Name" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_RoleClaims_RoleId",
                 table: "RoleClaims",
-                column: "RoleId");
+                column: "RoleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
                 table: "Roles",
                 column: "NormalizedName",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserClaims_UserId",
                 table: "UserClaims",
-                column: "UserId");
+                column: "UserId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserLogins_UserId",
                 table: "UserLogins",
-                column: "UserId");
+                column: "UserId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
                 table: "UserRoles",
-                column: "RoleId");
+                column: "RoleId"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
                 table: "Users",
-                column: "NormalizedEmail");
+                column: "NormalizedEmail"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email",
                 table: "Users",
                 column: "Email",
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "Users",
                 column: "NormalizedUserName",
-                unique: true);
+                unique: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "ApiKeys");
+            migrationBuilder.DropTable(name: "ApiKeys");
 
-            migrationBuilder.DropTable(
-                name: "McpToolRequests");
+            migrationBuilder.DropTable(name: "McpToolRequests");
 
-            migrationBuilder.DropTable(
-                name: "RoleClaims");
+            migrationBuilder.DropTable(name: "RoleClaims");
 
-            migrationBuilder.DropTable(
-                name: "UserClaims");
+            migrationBuilder.DropTable(name: "UserClaims");
 
-            migrationBuilder.DropTable(
-                name: "UserLogins");
+            migrationBuilder.DropTable(name: "UserLogins");
 
-            migrationBuilder.DropTable(
-                name: "UserRoles");
+            migrationBuilder.DropTable(name: "UserRoles");
 
-            migrationBuilder.DropTable(
-                name: "UserTokens");
+            migrationBuilder.DropTable(name: "UserTokens");
 
-            migrationBuilder.DropTable(
-                name: "McpTools");
+            migrationBuilder.DropTable(name: "McpTools");
 
-            migrationBuilder.DropTable(
-                name: "Roles");
+            migrationBuilder.DropTable(name: "Roles");
 
-            migrationBuilder.DropTable(
-                name: "Users");
+            migrationBuilder.DropTable(name: "Users");
 
-            migrationBuilder.DropTable(
-                name: "McpServers");
+            migrationBuilder.DropTable(name: "McpServers");
         }
     }
 }

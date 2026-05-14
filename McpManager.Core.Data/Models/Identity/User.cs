@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore;
 namespace McpManager.Core.Data.Models.Identity;
 
 [Index(nameof(Email), IsUnique = true)]
-public class User : IdentityUser<Guid>, IActivable {
+public class User : IdentityUser<Guid>, IActivable
+{
     public bool IsActive { get; set; } = true;
 
     [MaxLength(255)]
@@ -20,7 +21,8 @@ public class User : IdentityUser<Guid>, IActivable {
     public bool SidebarCollapsed { get; set; }
 
     // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
-    public string FullName => GivenName + (!string.IsNullOrEmpty(Surname) ? " " + Surname : string.Empty);
+    public string FullName =>
+        GivenName + (!string.IsNullOrEmpty(Surname) ? " " + Surname : string.Empty);
 
     public virtual List<UserLogin> Logins { get; set; } = [];
     public virtual List<UserToken> Tokens { get; set; } = [];

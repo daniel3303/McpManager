@@ -5,8 +5,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace McpManager.Core.Data;
 
-public class DesignTimeApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext> {
-    public ApplicationDbContext CreateDbContext(string[] args) {
+public class DesignTimeApplicationDbContextFactory
+    : IDesignTimeDbContextFactory<ApplicationDbContext>
+{
+    public ApplicationDbContext CreateDbContext(string[] args)
+    {
         var configuration = new ConfigurationBuilder()
             .SetBasePath(GetStartupProjectPath())
             .AddJsonFile("designsettings.json", optional: false)
@@ -16,14 +19,19 @@ public class DesignTimeApplicationDbContextFactory : IDesignTimeDbContextFactory
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         var connectionString = configuration.GetConnectionString("ApplicationConnection");
 
-        optionsBuilder.UseSqlite(connectionString, options => {
-            options.MigrationsAssembly(GetType().Assembly);
-        });
+        optionsBuilder.UseSqlite(
+            connectionString,
+            options =>
+            {
+                options.MigrationsAssembly(GetType().Assembly);
+            }
+        );
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }
 
-    private static string GetStartupProjectPath() {
+    private static string GetStartupProjectPath()
+    {
         return Directory.GetCurrentDirectory();
     }
 }

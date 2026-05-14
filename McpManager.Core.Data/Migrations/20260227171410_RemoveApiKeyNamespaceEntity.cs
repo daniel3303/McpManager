@@ -13,43 +13,46 @@ namespace McpManager.Core.Data.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_ApiKeyNamespaces_ApiKeys_ApiKeyId",
-                table: "ApiKeyNamespaces");
+                table: "ApiKeyNamespaces"
+            );
 
             migrationBuilder.DropForeignKey(
                 name: "FK_ApiKeyNamespaces_McpNamespaces_McpNamespaceId",
-                table: "ApiKeyNamespaces");
+                table: "ApiKeyNamespaces"
+            );
 
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_ApiKeyNamespaces",
-                table: "ApiKeyNamespaces");
+            migrationBuilder.DropPrimaryKey(name: "PK_ApiKeyNamespaces", table: "ApiKeyNamespaces");
 
             migrationBuilder.DropIndex(
                 name: "IX_ApiKeyNamespaces_ApiKeyId_McpNamespaceId",
-                table: "ApiKeyNamespaces");
+                table: "ApiKeyNamespaces"
+            );
 
-            migrationBuilder.DropColumn(
-                name: "Id",
-                table: "ApiKeyNamespaces");
+            migrationBuilder.DropColumn(name: "Id", table: "ApiKeyNamespaces");
 
             migrationBuilder.RenameColumn(
                 name: "McpNamespaceId",
                 table: "ApiKeyNamespaces",
-                newName: "ApiKeysId");
+                newName: "ApiKeysId"
+            );
 
             migrationBuilder.RenameColumn(
                 name: "ApiKeyId",
                 table: "ApiKeyNamespaces",
-                newName: "AllowedNamespacesId");
+                newName: "AllowedNamespacesId"
+            );
 
             migrationBuilder.RenameIndex(
                 name: "IX_ApiKeyNamespaces_McpNamespaceId",
                 table: "ApiKeyNamespaces",
-                newName: "IX_ApiKeyNamespaces_ApiKeysId");
+                newName: "IX_ApiKeyNamespaces_ApiKeysId"
+            );
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_ApiKeyNamespaces",
                 table: "ApiKeyNamespaces",
-                columns: new[] { "AllowedNamespacesId", "ApiKeysId" });
+                columns: new[] { "AllowedNamespacesId", "ApiKeysId" }
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ApiKeyNamespaces_ApiKeys_ApiKeysId",
@@ -57,7 +60,8 @@ namespace McpManager.Core.Data.Migrations
                 column: "ApiKeysId",
                 principalTable: "ApiKeys",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Cascade
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ApiKeyNamespaces_McpNamespaces_AllowedNamespacesId",
@@ -65,7 +69,8 @@ namespace McpManager.Core.Data.Migrations
                 column: "AllowedNamespacesId",
                 principalTable: "McpNamespaces",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Cascade
+            );
         }
 
         /// <inheritdoc />
@@ -73,48 +78,54 @@ namespace McpManager.Core.Data.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_ApiKeyNamespaces_ApiKeys_ApiKeysId",
-                table: "ApiKeyNamespaces");
+                table: "ApiKeyNamespaces"
+            );
 
             migrationBuilder.DropForeignKey(
                 name: "FK_ApiKeyNamespaces_McpNamespaces_AllowedNamespacesId",
-                table: "ApiKeyNamespaces");
+                table: "ApiKeyNamespaces"
+            );
 
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_ApiKeyNamespaces",
-                table: "ApiKeyNamespaces");
+            migrationBuilder.DropPrimaryKey(name: "PK_ApiKeyNamespaces", table: "ApiKeyNamespaces");
 
             migrationBuilder.RenameColumn(
                 name: "ApiKeysId",
                 table: "ApiKeyNamespaces",
-                newName: "McpNamespaceId");
+                newName: "McpNamespaceId"
+            );
 
             migrationBuilder.RenameColumn(
                 name: "AllowedNamespacesId",
                 table: "ApiKeyNamespaces",
-                newName: "ApiKeyId");
+                newName: "ApiKeyId"
+            );
 
             migrationBuilder.RenameIndex(
                 name: "IX_ApiKeyNamespaces_ApiKeysId",
                 table: "ApiKeyNamespaces",
-                newName: "IX_ApiKeyNamespaces_McpNamespaceId");
+                newName: "IX_ApiKeyNamespaces_McpNamespaceId"
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "Id",
                 table: "ApiKeyNamespaces",
                 type: "TEXT",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                defaultValue: new Guid("00000000-0000-0000-0000-000000000000")
+            );
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_ApiKeyNamespaces",
                 table: "ApiKeyNamespaces",
-                column: "Id");
+                column: "Id"
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_ApiKeyNamespaces_ApiKeyId_McpNamespaceId",
                 table: "ApiKeyNamespaces",
                 columns: new[] { "ApiKeyId", "McpNamespaceId" },
-                unique: true);
+                unique: true
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ApiKeyNamespaces_ApiKeys_ApiKeyId",
@@ -122,7 +133,8 @@ namespace McpManager.Core.Data.Migrations
                 column: "ApiKeyId",
                 principalTable: "ApiKeys",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Cascade
+            );
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ApiKeyNamespaces_McpNamespaces_McpNamespaceId",
@@ -130,7 +142,8 @@ namespace McpManager.Core.Data.Migrations
                 column: "McpNamespaceId",
                 principalTable: "McpNamespaces",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.Cascade
+            );
         }
     }
 }

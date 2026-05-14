@@ -13,19 +13,22 @@ using Microsoft.EntityFrameworkCore;
 namespace McpManager.Web.Portal.Controllers;
 
 [Authorize(Policy = "McpServers")]
-public class McpRequestsController : BaseController {
+public class McpRequestsController : BaseController
+{
     private readonly McpToolRequestRepository _requestRepository;
     private readonly McpServerRepository _serverRepository;
 
     public McpRequestsController(
         McpToolRequestRepository requestRepository,
         McpServerRepository serverRepository
-    ) {
+    )
+    {
         _requestRepository = requestRepository;
         _serverRepository = serverRepository;
     }
 
-    public async Task<IActionResult> Index(McpRequestSearchDto filters, int page = 1) {
+    public async Task<IActionResult> Index(McpRequestSearchDto filters, int page = 1)
+    {
         filters ??= new McpRequestSearchDto();
 
         ViewData["Title"] = "Request Log";
@@ -35,27 +38,28 @@ public class McpRequestsController : BaseController {
 
         var pageSize = 50;
 
-        var query = _requestRepository.GetAll()
+        var query = _requestRepository
+            .GetAll()
             .OrderByDescending(r => r.CreationTime)
             .AsQueryable();
 
-        if (filters.ServerId.HasValue) {
+        if (filters.ServerId.HasValue)
+        {
             query = query.Where(r => r.McpTool.McpServerId == filters.ServerId.Value);
         }
 
-        if (filters.ToolId.HasValue) {
+        if (filters.ToolId.HasValue)
+        {
             query = query.Where(r => r.McpToolId == filters.ToolId.Value);
         }
 
-        if (filters.Success.HasValue) {
+        if (filters.Success.HasValue)
+        {
             query = query.Where(r => r.Success == filters.Success.Value);
         }
 
         var totalCount = await query.CountAsync();
-        var requests = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var requests = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         ViewData["Page"] = page;
         ViewData["TotalPages"] = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -65,13 +69,15 @@ public class McpRequestsController : BaseController {
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Show(Guid id) {
+    public async Task<IActionResult> Show(Guid id)
+    {
         ViewData["Title"] = "Request Details";
         ViewData["Menu"] = "McpRequests";
         ViewData["Icon"] = HeroIcons.Render("document-text", size: 5);
 
         var request = await _requestRepository.Get(id);
-        if (request == null) {
+        if (request == null)
+        {
             return RedirectToAction(nameof(Index));
         }
 

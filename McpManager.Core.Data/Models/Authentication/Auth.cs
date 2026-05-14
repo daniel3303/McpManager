@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace McpManager.Core.Data.Models.Authentication;
 
-public class Auth {
+public class Auth
+{
     public AuthType Type { get; set; } = AuthType.None;
 
     // Basic auth fields

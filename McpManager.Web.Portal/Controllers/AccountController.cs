@@ -8,17 +8,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace McpManager.Web.Portal.Controllers;
 
-public class AccountController : BaseController {
+public class AccountController : BaseController
+{
     private readonly UserManager<User> _userManager;
     private readonly IFlashMessage _flashMessage;
 
-    public AccountController(UserManager<User> userManager, IFlashMessage flashMessage) {
+    public AccountController(UserManager<User> userManager, IFlashMessage flashMessage)
+    {
         _userManager = userManager;
         _flashMessage = flashMessage;
     }
 
     [HttpGet]
-    public async Task<IActionResult> ChangePassword() {
+    public async Task<IActionResult> ChangePassword()
+    {
         ViewData["Title"] = "Change Password";
         ViewData["Menu"] = "Account";
         ViewData["Icon"] = HeroIcons.Render("key", size: 5);
@@ -31,7 +34,8 @@ public class AccountController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangePassword(ChangePasswordDto dto) {
+    public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+    {
         ViewData["Title"] = "Change Password";
         ViewData["Menu"] = "Account";
         ViewData["Icon"] = HeroIcons.Render("key", size: 5);
@@ -39,15 +43,18 @@ public class AccountController : BaseController {
         var user = await GetAuthenticatedUser();
         ViewData["User"] = user;
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return View(dto);
         }
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var result = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
 
-        if (!result.Succeeded) {
-            foreach (var error in result.Errors) {
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
                 ModelState.AddModelError(nameof(dto.NewPassword), error.Description);
             }
             return View(dto);

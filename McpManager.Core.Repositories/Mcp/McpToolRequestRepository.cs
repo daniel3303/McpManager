@@ -4,10 +4,13 @@ using McpManager.Core.Repositories.Contracts;
 
 namespace McpManager.Core.Repositories.Mcp;
 
-public class McpToolRequestRepository : BaseRepository<McpToolRequest> {
-    public McpToolRequestRepository(ApplicationDbContext dbContext) : base(dbContext) { }
+public class McpToolRequestRepository : BaseRepository<McpToolRequest>
+{
+    public McpToolRequestRepository(ApplicationDbContext dbContext)
+        : base(dbContext) { }
 
-    public IQueryable<McpToolRequest> GetByTool(McpTool tool) {
+    public IQueryable<McpToolRequest> GetByTool(McpTool tool)
+    {
         return GetAll().Where(r => r.McpToolId == tool.Id);
     }
 }

@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace McpManager.Web.Portal.Dtos.Auth;
 
-public class LoginDto {
+public class LoginDto
+{
     [Required(ErrorMessage = "This field is required.")]
     [EmailAddress(ErrorMessage = "The email address is not valid.")]
     public string Email { get; set; }

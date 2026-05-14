@@ -1,6 +1,7 @@
 namespace McpManager.Web.Portal.Dtos.Users;
 
-public class ClaimCheckboxItem {
+public class ClaimCheckboxItem
+{
     public string Type { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }

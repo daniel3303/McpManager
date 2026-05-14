@@ -1,25 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PackageId>McpManager.Core.Mcp</PackageId>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
-        <PackageId>McpManager.Core.Mcp</PackageId>
-    </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+    <PackageReference Include="Microsoft.OpenApi" Version="3.3.1" />
+    <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.3.1" />
+    <PackageReference Include="ModelContextProtocol" Version="1.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-        <PackageReference Include="Microsoft.OpenApi" Version="3.3.1" />
-        <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.3.1" />
-        <PackageReference Include="ModelContextProtocol" Version="1.0.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\McpManager.Core.Data\McpManager.Core.Data.csproj" />
-        <ProjectReference Include="..\McpManager.Core.Identity\McpManager.Core.Identity.csproj" />
-        <ProjectReference Include="..\McpManager.Core.Repositories\McpManager.Core.Repositories.csproj" />
-    </ItemGroup>
-
+  <ItemGroup>
+    <ProjectReference Include="..\McpManager.Core.Data\McpManager.Core.Data.csproj" />
+    <ProjectReference Include="..\McpManager.Core.Identity\McpManager.Core.Identity.csproj" />
+    <ProjectReference Include="..\McpManager.Core.Repositories\McpManager.Core.Repositories.csproj" />
+  </ItemGroup>
 </Project>

@@ -4,7 +4,8 @@ using McpManager.Web.Portal.Dtos.Contracts;
 
 namespace McpManager.Web.Portal.Dtos.Mcp;
 
-public class McpServerDto : IHasAuth, IHasCustomHeaders {
+public class McpServerDto : IHasAuth, IHasCustomHeaders
+{
     [Required(ErrorMessage = "Name is required")]
     [MaxLength(255, ErrorMessage = "Name cannot exceed 255 characters")]
     [Display(Name = "Name")]

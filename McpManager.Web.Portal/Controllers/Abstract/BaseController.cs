@@ -13,13 +13,16 @@ namespace McpManager.Web.Portal.Controllers.Abstract;
 
 [Authorize]
 [Route("{controller=Home}/{action=Index}")]
-public abstract class BaseController : Controller {
-    protected async Task<User> GetAuthenticatedUser() {
+public abstract class BaseController : Controller
+{
+    protected async Task<User> GetAuthenticatedUser()
+    {
         var userRepository = HttpContext.RequestServices.GetRequiredService<UserRepository>();
         return await userRepository.Get(User.GetUserId());
     }
 
-    protected Guid GetAuthenticatedUserId() {
+    protected Guid GetAuthenticatedUserId()
+    {
         return User.GetUserId();
     }
 }

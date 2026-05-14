@@ -10,13 +10,9 @@ namespace McpManager.Core.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "AllowNewUserSignup",
-                table: "AppSettings");
+            migrationBuilder.DropColumn(name: "AllowNewUserSignup", table: "AppSettings");
 
-            migrationBuilder.DropColumn(
-                name: "SessionLifetimeDays",
-                table: "AppSettings");
+            migrationBuilder.DropColumn(name: "SessionLifetimeDays", table: "AppSettings");
         }
 
         /// <inheritdoc />
@@ -27,21 +23,24 @@ namespace McpManager.Core.Data.Migrations
                 table: "AppSettings",
                 type: "INTEGER",
                 nullable: false,
-                defaultValue: false);
+                defaultValue: false
+            );
 
             migrationBuilder.AddColumn<int>(
                 name: "SessionLifetimeDays",
                 table: "AppSettings",
                 type: "INTEGER",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 0
+            );
 
             migrationBuilder.UpdateData(
                 table: "AppSettings",
                 keyColumn: "Id",
                 keyValue: 1,
                 columns: new[] { "AllowNewUserSignup", "SessionLifetimeDays" },
-                values: new object[] { true, 7 });
+                values: new object[] { true, 7 }
+            );
         }
     }
 }

@@ -6,7 +6,8 @@ namespace McpManager.Core.Data.Models.Notifications;
 
 [Index(nameof(UserId), nameof(CreationTime))]
 [Index(nameof(UserId), nameof(IsRead))]
-public class Notification {
+public class Notification
+{
     public Guid UserId { get; set; }
 
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -17,7 +18,6 @@ public class Notification {
 
     [MaxLength(4000)]
     public string Message { get; set; }
-
 
     [Required]
     public virtual User User { get; set; }
@@ -36,8 +36,10 @@ public class Notification {
 
     public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
-    public void MarkAsRead() {
-        if (IsRead) return;
+    public void MarkAsRead()
+    {
+        if (IsRead)
+            return;
         IsRead = true;
         ReadTime = DateTime.UtcNow;
     }

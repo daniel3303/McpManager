@@ -19,7 +19,7 @@ namespace McpManager.Core.Data.Migrations
                     McpServerId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Level = table.Column<int>(type: "INTEGER", nullable: false),
                     Message = table.Column<string>(type: "TEXT", maxLength: 4000, nullable: false),
-                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -29,8 +29,10 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.McpServerId,
                         principalTable: "McpServers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateTable(
                 name: "Notifications",
@@ -45,7 +47,7 @@ namespace McpManager.Core.Data.Migrations
                     Url = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     Type = table.Column<int>(type: "INTEGER", nullable: false),
                     Icon = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    CreationTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -55,33 +57,36 @@ namespace McpManager.Core.Data.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
+                        onDelete: ReferentialAction.Cascade
+                    );
+                }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_McpServerLogs_McpServerId_CreationTime",
                 table: "McpServerLogs",
-                columns: new[] { "McpServerId", "CreationTime" });
+                columns: new[] { "McpServerId", "CreationTime" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId_CreationTime",
                 table: "Notifications",
-                columns: new[] { "UserId", "CreationTime" });
+                columns: new[] { "UserId", "CreationTime" }
+            );
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notifications_UserId_IsRead",
                 table: "Notifications",
-                columns: new[] { "UserId", "IsRead" });
+                columns: new[] { "UserId", "IsRead" }
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "McpServerLogs");
+            migrationBuilder.DropTable(name: "McpServerLogs");
 
-            migrationBuilder.DropTable(
-                name: "Notifications");
+            migrationBuilder.DropTable(name: "Notifications");
         }
     }
 }
