@@ -1,28 +1,32 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <PackageId>McpManager.Core.Data</PackageId>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
-        <PackageId>McpManager.Core.Data</PackageId>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.3" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
-    </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
+    <PackageReference
+      Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"
+      Version="10.0.3"
+    />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.3" />
+    <PackageReference
+      Include="Microsoft.Extensions.Configuration.FileExtensions"
+      Version="10.0.3"
+    />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
+  </ItemGroup>
 </Project>

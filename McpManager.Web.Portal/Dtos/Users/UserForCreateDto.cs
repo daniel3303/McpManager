@@ -2,7 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace McpManager.Web.Portal.Dtos.Users;
 
-public class UserForCreateDto {
+public class UserForCreateDto
+{
     [Required(ErrorMessage = "This field is required.")]
     [MaxLength(255)]
     [Display(Name = "Given Name")]

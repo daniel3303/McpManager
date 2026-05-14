@@ -7,14 +7,17 @@ namespace McpManager.Web.Portal.Controllers.Api;
 
 [Authorize]
 [Route("api/{controller=Home}/{action=Index}")]
-public abstract class ApiController : Controller {
+public abstract class ApiController : Controller
+{
     protected readonly ApplicationDbContext DbContext;
 
-    protected ApiController(ApplicationDbContext dbContext) {
+    protected ApiController(ApplicationDbContext dbContext)
+    {
         DbContext = dbContext;
     }
 
-    protected Guid GetAuthenticatedUserId() {
+    protected Guid GetAuthenticatedUserId()
+    {
         return User.GetUserId();
     }
 }

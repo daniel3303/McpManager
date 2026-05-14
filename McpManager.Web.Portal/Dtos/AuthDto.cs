@@ -3,7 +3,8 @@ using McpManager.Core.Data.Models.Authentication;
 
 namespace McpManager.Web.Portal.Dtos;
 
-public class AuthDto {
+public class AuthDto
+{
     [Display(Name = "Authentication Type")]
     public AuthType Type { get; set; } = AuthType.None;
 

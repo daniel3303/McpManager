@@ -4,7 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpToolRequests")]
-public class McpToolRequest {
+public class McpToolRequest
+{
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid McpToolId { get; set; }

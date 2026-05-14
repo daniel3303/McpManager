@@ -12,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace McpManager.Web.Portal.Controllers;
 
-public class NotificationsController : BaseController {
+public class NotificationsController : BaseController
+{
     private readonly NotificationRepository _notificationRepository;
     private readonly NotificationManager _notificationManager;
     private readonly IFlashMessage _flashMessage;
@@ -21,27 +22,28 @@ public class NotificationsController : BaseController {
         NotificationRepository notificationRepository,
         NotificationManager notificationManager,
         IFlashMessage flashMessage
-    ) {
+    )
+    {
         _notificationRepository = notificationRepository;
         _notificationManager = notificationManager;
         _flashMessage = flashMessage;
     }
 
-    public async Task<IActionResult> Index() {
+    public async Task<IActionResult> Index()
+    {
         ViewData["Title"] = "Notifications";
         ViewData["Menu"] = "Notifications";
         ViewData["Icon"] = HeroIcons.Render("bell", size: 5);
 
         var user = await GetAuthenticatedUser();
-        var query = _notificationRepository
-            .GetByUser(user)
-            .OrderByDescending(n => n.CreationTime);
+        var query = _notificationRepository.GetByUser(user).OrderByDescending(n => n.CreationTime);
 
         return View(query);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Show(Guid id) {
+    public async Task<IActionResult> Show(Guid id)
+    {
         ViewData["Title"] = "Notification Details";
         ViewData["Menu"] = "Notifications";
         ViewData["Icon"] = HeroIcons.Render("bell", size: 5);
@@ -51,18 +53,21 @@ public class NotificationsController : BaseController {
             .GetByUser(user)
             .FirstOrDefaultAsync(n => n.Id == id);
 
-        if (notification == null) {
+        if (notification == null)
+        {
             _flashMessage.Error("Notification not found.");
             return RedirectToAction(nameof(Index));
         }
 
         // Mark as read
-        if (!notification.IsRead) {
+        if (!notification.IsRead)
+        {
             await _notificationManager.MarkAsRead(notification);
         }
 
         // If notification has a URL, redirect to it
-        if (!string.IsNullOrWhiteSpace(notification.Url)) {
+        if (!string.IsNullOrWhiteSpace(notification.Url))
+        {
             return Redirect(notification.Url);
         }
 
@@ -71,13 +76,15 @@ public class NotificationsController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkAsRead(Guid id) {
+    public async Task<IActionResult> MarkAsRead(Guid id)
+    {
         var user = await GetAuthenticatedUser();
         var notification = await _notificationRepository
             .GetByUser(user)
             .FirstOrDefaultAsync(n => n.Id == id);
 
-        if (notification != null) {
+        if (notification != null)
+        {
             await _notificationManager.MarkAsRead(notification);
         }
 
@@ -86,7 +93,8 @@ public class NotificationsController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkAllAsRead() {
+    public async Task<IActionResult> MarkAllAsRead()
+    {
         var user = await GetAuthenticatedUser();
         await _notificationManager.MarkAllAsRead(user);
         _flashMessage.Success("All notifications marked as read.");
@@ -95,13 +103,15 @@ public class NotificationsController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid id) {
+    public async Task<IActionResult> Delete(Guid id)
+    {
         var user = await GetAuthenticatedUser();
         var notification = await _notificationRepository
             .GetByUser(user)
             .FirstOrDefaultAsync(n => n.Id == id);
 
-        if (notification == null) {
+        if (notification == null)
+        {
             _flashMessage.Error("Notification not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -114,23 +124,24 @@ public class NotificationsController : BaseController {
     #region API
 
     [HttpGet]
-    public async Task<IActionResult> UnreadCount() {
+    public async Task<IActionResult> UnreadCount()
+    {
         var user = await GetAuthenticatedUser();
-        var count = await _notificationRepository
-            .GetUnreadByUser(user)
-            .CountAsync();
+        var count = await _notificationRepository.GetUnreadByUser(user).CountAsync();
 
         return Ok(new { Count = count });
     }
 
     [HttpGet]
-    public async Task<IActionResult> Recent() {
+    public async Task<IActionResult> Recent()
+    {
         var user = await GetAuthenticatedUser();
         var notifications = await _notificationRepository
             .GetByUser(user)
             .OrderByDescending(n => n.CreationTime)
             .Take(5)
-            .Select(n => new {
+            .Select(n => new
+            {
                 n.Id,
                 n.Title,
                 n.Message,
@@ -138,7 +149,7 @@ public class NotificationsController : BaseController {
                 n.Icon,
                 n.IsRead,
                 n.Url,
-                n.CreationTime
+                n.CreationTime,
             })
             .ToListAsync();
 
@@ -147,13 +158,15 @@ public class NotificationsController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApiMarkAsRead(Guid id) {
+    public async Task<IActionResult> ApiMarkAsRead(Guid id)
+    {
         var user = await GetAuthenticatedUser();
         var notification = await _notificationRepository
             .GetByUser(user)
             .FirstOrDefaultAsync(n => n.Id == id);
 
-        if (notification == null) {
+        if (notification == null)
+        {
             return NotFound();
         }
 
@@ -163,7 +176,8 @@ public class NotificationsController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApiMarkAllAsRead() {
+    public async Task<IActionResult> ApiMarkAllAsRead()
+    {
         var user = await GetAuthenticatedUser();
         await _notificationManager.MarkAllAsRead(user);
         return Ok();

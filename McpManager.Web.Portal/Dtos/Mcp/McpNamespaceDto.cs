@@ -3,7 +3,8 @@ using McpManager.Core.Data.Models.Mcp;
 
 namespace McpManager.Web.Portal.Dtos.Mcp;
 
-public class McpNamespaceDto {
+public class McpNamespaceDto
+{
     [Required]
     [MaxLength(255)]
     [Display(Name = "Name")]
@@ -11,7 +12,10 @@ public class McpNamespaceDto {
 
     [Required]
     [MaxLength(255)]
-    [RegularExpression(@"^[a-z0-9][a-z0-9-]*$", ErrorMessage = "Slug must contain only lowercase letters, numbers, and hyphens")]
+    [RegularExpression(
+        @"^[a-z0-9][a-z0-9-]*$",
+        ErrorMessage = "Slug must contain only lowercase letters, numbers, and hyphens"
+    )]
     [Display(Name = "Slug")]
     public string Slug { get; set; }
 

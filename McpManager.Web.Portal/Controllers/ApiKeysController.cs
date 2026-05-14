@@ -16,18 +16,25 @@ using Microsoft.AspNetCore.Mvc;
 namespace McpManager.Web.Portal.Controllers;
 
 [Authorize(Policy = "ApiKeys")]
-public class ApiKeysController : BaseController {
+public class ApiKeysController : BaseController
+{
     private readonly ApiKeyRepository _apiKeyRepository;
     private readonly ApiKeyManager _apiKeyManager;
     private readonly IFlashMessage _flashMessage;
 
-    public ApiKeysController(ApiKeyRepository apiKeyRepository, ApiKeyManager apiKeyManager, IFlashMessage flashMessage) {
+    public ApiKeysController(
+        ApiKeyRepository apiKeyRepository,
+        ApiKeyManager apiKeyManager,
+        IFlashMessage flashMessage
+    )
+    {
         _apiKeyRepository = apiKeyRepository;
         _apiKeyManager = apiKeyManager;
         _flashMessage = flashMessage;
     }
 
-    public IActionResult Index(TextSearchDto filters) {
+    public IActionResult Index(TextSearchDto filters)
+    {
         filters ??= new TextSearchDto();
         ViewData["Title"] = "API Keys";
         ViewData["Menu"] = "ApiKeys";
@@ -36,7 +43,8 @@ public class ApiKeysController : BaseController {
 
         var query = _apiKeyRepository.GetAll();
 
-        if (!string.IsNullOrWhiteSpace(filters.Search)) {
+        if (!string.IsNullOrWhiteSpace(filters.Search))
+        {
             var search = filters.Search.ToLower();
             query = query.Where(k => k.Name.ToLower().Contains(search));
         }
@@ -47,13 +55,15 @@ public class ApiKeysController : BaseController {
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Show(Guid id) {
+    public async Task<IActionResult> Show(Guid id)
+    {
         ViewData["Title"] = "API Key Details";
         ViewData["Menu"] = "ApiKeys";
         ViewData["Icon"] = HeroIcons.Render("key", size: 5);
 
         var apiKey = await _apiKeyRepository.Get(id);
-        if (apiKey == null) {
+        if (apiKey == null)
+        {
             _flashMessage.Error("API Key not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -62,7 +72,8 @@ public class ApiKeysController : BaseController {
     }
 
     [HttpGet]
-    public IActionResult Create() {
+    public IActionResult Create()
+    {
         ViewData["Title"] = "Create API Key";
         ViewData["Menu"] = "ApiKeys";
         ViewData["Icon"] = HeroIcons.Render("plus", size: 5);
@@ -72,31 +83,35 @@ public class ApiKeysController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(ApiKeyDto dto) {
+    public async Task<IActionResult> Create(ApiKeyDto dto)
+    {
         ViewData["Title"] = "Create API Key";
         ViewData["Menu"] = "ApiKeys";
         ViewData["Icon"] = HeroIcons.Render("plus", size: 5);
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return View("Form", dto);
         }
 
-        var apiKey = new ApiKey {
-            Name = dto.Name
-        };
+        var apiKey = new ApiKey { Name = dto.Name };
 
         await _apiKeyManager.Create(apiKey);
 
-        _flashMessage.Success("API Key created successfully. Copy the key now — it won't be shown again in full.");
+        _flashMessage.Success(
+            "API Key created successfully. Copy the key now — it won't be shown again in full."
+        );
         TempData["NewApiKey"] = apiKey.Key;
 
         return RedirectToAction(nameof(Show), new { id = apiKey.Id });
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Edit(Guid id) {
+    public async Task<IActionResult> Edit(Guid id)
+    {
         var apiKey = await _apiKeyRepository.Get(id);
-        if (apiKey == null) return NotFound();
+        if (apiKey == null)
+            return NotFound();
 
         var dto = new ApiKeyDto { Name = apiKey.Name };
         return PartialView("_EditForm", dto);
@@ -104,11 +119,14 @@ public class ApiKeysController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, ApiKeyDto dto) {
+    public async Task<IActionResult> Edit(Guid id, ApiKeyDto dto)
+    {
         var apiKey = await _apiKeyRepository.Get(id);
-        if (apiKey == null) return NotFound();
+        if (apiKey == null)
+            return NotFound();
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return PartialView("_EditForm", dto);
         }
 
@@ -118,9 +136,11 @@ public class ApiKeysController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid id) {
+    public async Task<IActionResult> Delete(Guid id)
+    {
         var apiKey = await _apiKeyRepository.Get(id);
-        if (apiKey == null) {
+        if (apiKey == null)
+        {
             _flashMessage.Error("API Key not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -132,7 +152,8 @@ public class ApiKeysController : BaseController {
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> RevealKey(Guid id) {
+    public async Task<IActionResult> RevealKey(Guid id)
+    {
         var apiKey = await _apiKeyRepository.Get(id);
         if (apiKey == null)
             return Json(new { Success = false, Message = "API Key not found." });
@@ -142,9 +163,11 @@ public class ApiKeysController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleActive(Guid id) {
+    public async Task<IActionResult> ToggleActive(Guid id)
+    {
         var apiKey = await _apiKeyRepository.Get(id);
-        if (apiKey == null) {
+        if (apiKey == null)
+        {
             _flashMessage.Error("API Key not found.");
             return RedirectToAction(nameof(Index));
         }

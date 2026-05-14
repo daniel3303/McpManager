@@ -6,7 +6,8 @@ namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpTools")]
 [Index(nameof(McpServerId), nameof(Name), IsUnique = true)]
-public class McpTool {
+public class McpTool
+{
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required]

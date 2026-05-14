@@ -1,6 +1,7 @@
 namespace McpManager.Web.Portal.Services.FlashMessage.Contracts;
 
-public interface IFlashMessageModel {
+public interface IFlashMessageModel
+{
     bool IsHtml { get; set; }
 
     string Title { get; set; }

@@ -15,7 +15,8 @@ namespace McpManager.Core.Data.Migrations
                 keyColumn: "Id",
                 keyValue: 1,
                 column: "McpConnectionTimeoutSeconds",
-                value: 120);
+                value: 120
+            );
         }
 
         /// <inheritdoc />
@@ -26,7 +27,8 @@ namespace McpManager.Core.Data.Migrations
                 keyColumn: "Id",
                 keyValue: 1,
                 column: "McpConnectionTimeoutSeconds",
-                value: 30);
+                value: 30
+            );
         }
     }
 }

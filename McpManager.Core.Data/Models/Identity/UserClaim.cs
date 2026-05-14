@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace McpManager.Core.Data.Models.Identity;
 
-public class UserClaim : IdentityUserClaim<Guid> {
+public class UserClaim : IdentityUserClaim<Guid>
+{
     public virtual User User { get; set; }
 }

@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using McpManager.Core.Data.Models.Contracts;
 using McpManager.Core.Data.Models.Authentication;
+using McpManager.Core.Data.Models.Contracts;
 
 namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpServers")]
-public class McpServer : IActivable {
+public class McpServer : IActivable
+{
     public Guid Id { get; set; } = Guid.NewGuid();
     public bool IsActive { get; set; } = true;
 

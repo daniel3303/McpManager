@@ -13,19 +13,22 @@ using Microsoft.AspNetCore.Mvc;
 namespace McpManager.Web.Portal.Controllers;
 
 [Authorize(Policy = "Admin")]
-public class AdminSettingsController : BaseController {
+public class AdminSettingsController : BaseController
+{
     private readonly AppSettingsRepository _settingsRepository;
     private readonly IFlashMessage _flashMessage;
 
     public AdminSettingsController(
         AppSettingsRepository settingsRepository,
         IFlashMessage flashMessage
-    ) {
+    )
+    {
         _settingsRepository = settingsRepository;
         _flashMessage = flashMessage;
     }
 
-    public async Task<IActionResult> Index() {
+    public async Task<IActionResult> Index()
+    {
         ViewData["Title"] = "Settings";
         ViewData["Menu"] = "AdminSettings";
         ViewData["Icon"] = HeroIcons.Render("cog-6-tooth", size: 5);
@@ -36,17 +39,20 @@ public class AdminSettingsController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Index(AppSettings dto) {
+    public async Task<IActionResult> Index(AppSettings dto)
+    {
         ViewData["Title"] = "Settings";
         ViewData["Menu"] = "AdminSettings";
         ViewData["Icon"] = HeroIcons.Render("cog-6-tooth", size: 5);
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return View(dto);
         }
 
         var settings = await _settingsRepository.Get(1);
-        if (settings == null) {
+        if (settings == null)
+        {
             settings = new AppSettings { Id = 1 };
             _settingsRepository.Add(settings);
         }

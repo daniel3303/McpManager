@@ -11,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace McpManager.Web.Portal.Controllers;
 
-public class HomeController : BaseController {
+public class HomeController : BaseController
+{
     private readonly McpServerRepository _mcpServerRepository;
     private readonly McpToolRepository _toolRepository;
     private readonly ApiKeyRepository _apiKeyRepository;
@@ -20,13 +21,15 @@ public class HomeController : BaseController {
         McpServerRepository mcpServerRepository,
         McpToolRepository toolRepository,
         ApiKeyRepository apiKeyRepository
-    ) {
+    )
+    {
         _mcpServerRepository = mcpServerRepository;
         _toolRepository = toolRepository;
         _apiKeyRepository = apiKeyRepository;
     }
 
-    public async Task<IActionResult> Index() {
+    public async Task<IActionResult> Index()
+    {
         ViewData["Title"] = "Home";
         ViewData["Menu"] = "Home";
         ViewData["TotalServers"] = await _mcpServerRepository.GetAll().CountAsync();
@@ -37,14 +40,17 @@ public class HomeController : BaseController {
     }
 
     [HttpGet]
-    public async Task<IActionResult> ActiveApiKey() {
-        var apiKey = await _apiKeyRepository.GetAll()
+    public async Task<IActionResult> ActiveApiKey()
+    {
+        var apiKey = await _apiKeyRepository
+            .GetAll()
             .Where(k => k.IsActive)
             .OrderBy(k => k.CreationTime)
             .Select(k => new { k.Key })
             .FirstOrDefaultAsync();
 
-        if (apiKey == null) {
+        if (apiKey == null)
+        {
             return Json(new { Success = false, Message = "No active API key found." });
         }
 
@@ -53,7 +59,8 @@ public class HomeController : BaseController {
 
     [Route("/Home/Error")]
     [AllowAnonymous]
-    public IActionResult Error() {
+    public IActionResult Error()
+    {
         var exceptionFeature = HttpContext.Features.Get<IExceptionHandlerFeature>();
         var exception = exceptionFeature?.Error;
 

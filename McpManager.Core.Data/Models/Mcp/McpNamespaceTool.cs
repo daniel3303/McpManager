@@ -6,7 +6,8 @@ namespace McpManager.Core.Data.Models.Mcp;
 
 [Table("McpNamespaceTools")]
 [Index(nameof(McpNamespaceServerId), nameof(McpToolId), IsUnique = true)]
-public class McpNamespaceTool {
+public class McpNamespaceTool
+{
     public Guid Id { get; set; } = Guid.NewGuid();
     public bool IsEnabled { get; set; } = true;
 

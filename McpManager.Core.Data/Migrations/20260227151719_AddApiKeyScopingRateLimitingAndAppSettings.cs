@@ -8,15 +8,9 @@ namespace McpManager.Core.Data.Migrations
     public partial class AddApiKeyScopingRateLimitingAndAppSettings : Migration
     {
         /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-
-        }
+        protected override void Up(MigrationBuilder migrationBuilder) { }
 
         /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-
-        }
+        protected override void Down(MigrationBuilder migrationBuilder) { }
     }
 }

@@ -14,25 +14,23 @@ namespace McpManager.Core.Data.Migrations
                 name: "Metadata",
                 table: "McpTools",
                 type: "TEXT",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "OpenApiSpecification",
                 table: "McpServers",
                 type: "TEXT",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Metadata",
-                table: "McpTools");
+            migrationBuilder.DropColumn(name: "Metadata", table: "McpTools");
 
-            migrationBuilder.DropColumn(
-                name: "OpenApiSpecification",
-                table: "McpServers");
+            migrationBuilder.DropColumn(name: "OpenApiSpecification", table: "McpServers");
         }
     }
 }

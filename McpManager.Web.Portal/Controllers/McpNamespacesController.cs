@@ -18,7 +18,8 @@ using ApplicationException = McpManager.Core.Data.Exceptions.ApplicationExceptio
 namespace McpManager.Web.Portal.Controllers;
 
 [Authorize(Policy = "McpNamespaces")]
-public class McpNamespacesController : BaseController {
+public class McpNamespacesController : BaseController
+{
     private readonly McpNamespaceRepository _namespaceRepository;
     private readonly McpNamespaceServerRepository _namespaceServerRepository;
     private readonly McpNamespaceToolRepository _namespaceToolRepository;
@@ -33,7 +34,8 @@ public class McpNamespacesController : BaseController {
         McpServerRepository serverRepository,
         McpNamespaceManager namespaceManager,
         IFlashMessage flashMessage
-    ) {
+    )
+    {
         _namespaceRepository = namespaceRepository;
         _namespaceServerRepository = namespaceServerRepository;
         _namespaceToolRepository = namespaceToolRepository;
@@ -42,7 +44,8 @@ public class McpNamespacesController : BaseController {
         _flashMessage = flashMessage;
     }
 
-    public IActionResult Index(TextSearchDto filters) {
+    public IActionResult Index(TextSearchDto filters)
+    {
         filters ??= new TextSearchDto();
         ViewData["Title"] = "Namespaces";
         ViewData["Menu"] = "McpNamespaces";
@@ -51,11 +54,12 @@ public class McpNamespacesController : BaseController {
 
         var query = _namespaceRepository.GetAll();
 
-        if (!string.IsNullOrWhiteSpace(filters.Search)) {
+        if (!string.IsNullOrWhiteSpace(filters.Search))
+        {
             var search = filters.Search.ToLower();
             query = query.Where(n =>
-                n.Name.ToLower().Contains(search) ||
-                n.Slug.ToLower().Contains(search));
+                n.Name.ToLower().Contains(search) || n.Slug.ToLower().Contains(search)
+            );
         }
 
         query = query.OrderBy(n => n.Name);
@@ -64,12 +68,14 @@ public class McpNamespacesController : BaseController {
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Show(Guid id) {
+    public async Task<IActionResult> Show(Guid id)
+    {
         ViewData["Menu"] = "McpNamespaces";
         ViewData["Icon"] = HeroIcons.Render("rectangle-group", size: 5);
 
         var ns = await _namespaceRepository.Get(id);
-        if (ns == null) {
+        if (ns == null)
+        {
             _flashMessage.Error("Namespace not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -77,10 +83,12 @@ public class McpNamespacesController : BaseController {
         ViewData["Title"] = ns.Name;
 
         // Get servers not yet in this namespace for the add dropdown
-        var existingServerIds = await _namespaceServerRepository.GetByNamespace(ns)
+        var existingServerIds = await _namespaceServerRepository
+            .GetByNamespace(ns)
             .Select(s => s.McpServerId)
             .ToListAsync();
-        var availableServers = await _serverRepository.GetAll()
+        var availableServers = await _serverRepository
+            .GetAll()
             .Where(s => !existingServerIds.Contains(s.Id))
             .OrderBy(s => s.Name)
             .ToListAsync();
@@ -91,7 +99,8 @@ public class McpNamespacesController : BaseController {
         ViewData["NsServers"] = nsServers;
 
         var nsServerIds = nsServers.Select(s => s.Id).ToList();
-        var allNsTools = await _namespaceToolRepository.GetAll()
+        var allNsTools = await _namespaceToolRepository
+            .GetAll()
             .Where(t => nsServerIds.Contains(t.McpNamespaceServerId))
             .ToListAsync();
         ViewData["NsToolsByServer"] = allNsTools
@@ -102,7 +111,8 @@ public class McpNamespacesController : BaseController {
     }
 
     [HttpGet]
-    public IActionResult Create() {
+    public IActionResult Create()
+    {
         ViewData["Title"] = "Create Namespace";
         ViewData["Menu"] = "McpNamespaces";
         ViewData["Icon"] = HeroIcons.Render("plus", size: 5);
@@ -112,41 +122,49 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(McpNamespaceDto dto) {
+    public async Task<IActionResult> Create(McpNamespaceDto dto)
+    {
         ViewData["Title"] = "Create Namespace";
         ViewData["Menu"] = "McpNamespaces";
         ViewData["Icon"] = HeroIcons.Render("plus", size: 5);
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return View("Form", dto);
         }
 
-        var ns = new McpNamespace {
+        var ns = new McpNamespace
+        {
             Name = dto.Name,
             Slug = dto.Slug,
             Description = dto.Description,
             RateLimitEnabled = dto.RateLimitEnabled,
             RateLimitRequestsPerMinute = dto.RateLimitRequestsPerMinute,
-            RateLimitStrategy = dto.RateLimitStrategy
+            RateLimitStrategy = dto.RateLimitStrategy,
         };
 
-        try {
+        try
+        {
             await _namespaceManager.Create(ns);
             _flashMessage.Success("Namespace created successfully.");
             return RedirectToAction(nameof(Show), new { id = ns.Id });
-        } catch (ApplicationException ex) {
+        }
+        catch (ApplicationException ex)
+        {
             ModelState.AddModelError(ex.Property ?? "", ex.Message);
             return View("Form", dto);
         }
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> Edit(Guid id) {
+    public async Task<IActionResult> Edit(Guid id)
+    {
         ViewData["Menu"] = "McpNamespaces";
         ViewData["Icon"] = HeroIcons.Render("pencil-square", size: 5);
 
         var ns = await _namespaceRepository.Get(id);
-        if (ns == null) {
+        if (ns == null)
+        {
             _flashMessage.Error("Namespace not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -154,13 +172,14 @@ public class McpNamespacesController : BaseController {
         ViewData["Title"] = $"Edit {ns.Name}";
         ViewData["Model"] = ns;
 
-        var dto = new McpNamespaceDto {
+        var dto = new McpNamespaceDto
+        {
             Name = ns.Name,
             Slug = ns.Slug,
             Description = ns.Description,
             RateLimitEnabled = ns.RateLimitEnabled,
             RateLimitRequestsPerMinute = ns.RateLimitRequestsPerMinute,
-            RateLimitStrategy = ns.RateLimitStrategy
+            RateLimitStrategy = ns.RateLimitStrategy,
         };
 
         return View("Form", dto);
@@ -168,12 +187,14 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, McpNamespaceDto dto) {
+    public async Task<IActionResult> Edit(Guid id, McpNamespaceDto dto)
+    {
         ViewData["Menu"] = "McpNamespaces";
         ViewData["Icon"] = HeroIcons.Render("pencil-square", size: 5);
 
         var ns = await _namespaceRepository.Get(id);
-        if (ns == null) {
+        if (ns == null)
+        {
             _flashMessage.Error("Namespace not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -181,7 +202,8 @@ public class McpNamespacesController : BaseController {
         ViewData["Title"] = $"Edit {ns.Name}";
         ViewData["Model"] = ns;
 
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return View("Form", dto);
         }
 
@@ -192,11 +214,14 @@ public class McpNamespacesController : BaseController {
         ns.RateLimitRequestsPerMinute = dto.RateLimitRequestsPerMinute;
         ns.RateLimitStrategy = dto.RateLimitStrategy;
 
-        try {
+        try
+        {
             await _namespaceManager.Update(ns);
             _flashMessage.Success("Namespace updated successfully.");
             return RedirectToAction(nameof(Show), new { id });
-        } catch (ApplicationException ex) {
+        }
+        catch (ApplicationException ex)
+        {
             ModelState.AddModelError(ex.Property ?? "", ex.Message);
             return View("Form", dto);
         }
@@ -204,9 +229,11 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid id) {
+    public async Task<IActionResult> Delete(Guid id)
+    {
         var ns = await _namespaceRepository.Get(id);
-        if (ns == null) {
+        if (ns == null)
+        {
             _flashMessage.Error("Namespace not found.");
             return RedirectToAction(nameof(Index));
         }
@@ -218,12 +245,15 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddServer(Guid id, Guid serverId) {
+    public async Task<IActionResult> AddServer(Guid id, Guid serverId)
+    {
         var ns = await _namespaceRepository.Get(id);
-        if (ns == null) return NotFound();
+        if (ns == null)
+            return NotFound();
 
         var server = await _serverRepository.Get(serverId);
-        if (server == null) return NotFound();
+        if (server == null)
+            return NotFound();
 
         await _namespaceManager.AddServer(ns, server);
         _flashMessage.Success($"Server '{server.Name}' added to namespace.");
@@ -232,9 +262,11 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost("{id:guid}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RemoveServer(Guid id, Guid nsServerId) {
+    public async Task<IActionResult> RemoveServer(Guid id, Guid nsServerId)
+    {
         var nsServer = await _namespaceServerRepository.Get(nsServerId);
-        if (nsServer == null) return NotFound();
+        if (nsServer == null)
+            return NotFound();
 
         await _namespaceManager.RemoveServer(nsServer);
         _flashMessage.Success("Server removed from namespace.");
@@ -243,9 +275,11 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleServer(Guid nsServerId, bool isActive) {
+    public async Task<IActionResult> ToggleServer(Guid nsServerId, bool isActive)
+    {
         var nsServer = await _namespaceServerRepository.Get(nsServerId);
-        if (nsServer == null) return NotFound();
+        if (nsServer == null)
+            return NotFound();
 
         await _namespaceManager.ToggleServer(nsServer, isActive);
         return Json(new { Success = true });
@@ -253,9 +287,11 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleTool(Guid nsToolId, bool isEnabled) {
+    public async Task<IActionResult> ToggleTool(Guid nsToolId, bool isEnabled)
+    {
         var nsTool = await _namespaceToolRepository.Get(nsToolId);
-        if (nsTool == null) return NotFound();
+        if (nsTool == null)
+            return NotFound();
 
         await _namespaceManager.ToggleTool(nsTool, isEnabled);
         return Json(new { Success = true });
@@ -263,9 +299,15 @@ public class McpNamespacesController : BaseController {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditToolOverride(Guid nsToolId, string nameOverride, string descriptionOverride) {
+    public async Task<IActionResult> EditToolOverride(
+        Guid nsToolId,
+        string nameOverride,
+        string descriptionOverride
+    )
+    {
         var nsTool = await _namespaceToolRepository.Get(nsToolId);
-        if (nsTool == null) return NotFound();
+        if (nsTool == null)
+            return NotFound();
 
         await _namespaceManager.UpdateToolOverride(nsTool, nameOverride, descriptionOverride);
         return Json(new { Success = true });

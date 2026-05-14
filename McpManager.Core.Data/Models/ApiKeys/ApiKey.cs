@@ -6,7 +6,8 @@ using McpManager.Core.Data.Models.Mcp;
 namespace McpManager.Core.Data.Models.ApiKeys;
 
 [Table("ApiKeys")]
-public class ApiKey : IActivable {
+public class ApiKey : IActivable
+{
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required]

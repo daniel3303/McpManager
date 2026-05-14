@@ -4,10 +4,13 @@ using McpManager.Core.Repositories.Contracts;
 
 namespace McpManager.Core.Repositories.ApiKeys;
 
-public class ApiKeyRepository : BaseRepository<ApiKey> {
-    public ApiKeyRepository(ApplicationDbContext dbContext) : base(dbContext) { }
+public class ApiKeyRepository : BaseRepository<ApiKey>
+{
+    public ApiKeyRepository(ApplicationDbContext dbContext)
+        : base(dbContext) { }
 
-    public IQueryable<ApiKey> GetByKey(string key) {
+    public IQueryable<ApiKey> GetByKey(string key)
+    {
         return GetAll().Where(k => k.Key == key && k.IsActive);
     }
 }
