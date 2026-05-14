@@ -40,22 +40,18 @@ public class AuthSmokeTests : IClassFixture<WebFactoryFixture>
     public async Task PostLogin_WithSeededAdminCredentials_RedirectsAndIssuesAuthCookie()
     {
         var client = _factory.CreateClient(
-            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
         );
         var ct = TestContext.Current.CancellationToken;
 
         // Credentials match the seed user in ApplicationDbContext + README. If
         // the Identity password-hasher version drifts or seed data is reset,
         // this fails — and the README-documented quick-start is broken.
-        var form = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["Email"] = "admin@mcpmanager.local",
-                ["Password"] = "123456",
-            }
-        );
-
-        var response = await client.PostAsync("/Auth/Login", form, ct);
+        var response = await _factory.SignInAsAdminAsync(client, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
         // The failure path re-renders the form (200) or redirects back to

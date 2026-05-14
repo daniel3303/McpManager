@@ -27,14 +27,7 @@ public class ClaimsTransformationTests : IClassFixture<WebFactoryFixture>
         // Sign in as the seeded admin. The seed grants only the "Admin" claim;
         // policies like "McpServers" succeed only because ClaimsTransformation
         // expands Admin into every other ClaimStore claim on each request.
-        var loginForm = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["Email"] = "admin@mcpmanager.local",
-                ["Password"] = "123456",
-            }
-        );
-        var loginResponse = await client.PostAsync("/Auth/Login", loginForm, ct);
+        var loginResponse = await _factory.SignInAsAdminAsync(client, ct);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.Found);
 
         var response = await client.GetAsync("/McpServers", ct);

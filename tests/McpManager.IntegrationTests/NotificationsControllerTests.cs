@@ -24,17 +24,7 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
         );
         var ct = TestContext.Current.CancellationToken;
 
-        await client.PostAsync(
-            "/Auth/Login",
-            new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["Email"] = "admin@mcpmanager.local",
-                    ["Password"] = "123456",
-                }
-            ),
-            ct
-        );
+        await _factory.SignInAsAdminAsync(client, ct);
 
         var response = await client.GetAsync("/Notifications/UnreadCount", ct);
 
