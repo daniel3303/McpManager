@@ -61,10 +61,7 @@ public class AuthSmokeTests : IClassFixture<WebFactoryFixture>
         // The failure path re-renders the form (200) or redirects back to
         // /auth/login; success goes to Home (collapses to "/" because Home is
         // the default route).
-        response
-            .Headers.Location!.ToString()
-            .Should()
-            .NotContainEquivalentOf("auth/login");
+        response.Headers.Location!.ToString().Should().NotContainEquivalentOf("auth/login");
 
         // Without this the test would also pass for any benign 302 that didn't
         // actually authenticate the user.
