@@ -18,7 +18,7 @@
         "flatpickr": "^4.6.13",
         "html5sortable": "^0.14.0",
         "inputmask": "^5.0.9",
-        "jquery": "^3.6.1",
+        "jquery": "^4.0.0",
         "jquery-validation": "^1.19.5",
         "jquery-validation-unobtrusive": "^4.0.0",
         "moment": "^2.30.1",
