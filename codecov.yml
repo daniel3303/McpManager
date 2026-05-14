@@ -1,0 +1,25 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 60%
+
+# EF Core migrations are auto-generated and not test targets — exclude from
+# coverage reporting so they don't drag the percentage down.
+ignore:
+  - "src/McpManager.Core.Data/Migrations/**"
+
+# Flag carryforward keeps the merged "All flags" view stable when one upload
+# is missing or delayed. ci.yml uploads `unit-integration` (UnitTests +
+# IntegrationTests). Without carryforward, a transient upload failure would
+# silently report 0% across every file on the dashboard.
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: unit-integration
+      carryforward: true

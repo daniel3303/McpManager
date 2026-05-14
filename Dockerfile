@@ -16,12 +16,12 @@ WORKDIR /src
 RUN apt-get update && apt-get install -y nodejs npm
 
 COPY . /src/
-WORKDIR /src/McpManager.Web.Portal
+WORKDIR /src/src/McpManager.Web.Portal
 RUN npm ci && npm run build
 RUN dotnet restore && dotnet build -c Release -o /app/build
 
 FROM build AS publish
-WORKDIR /src/McpManager.Web.Portal
+WORKDIR /src/src/McpManager.Web.Portal
 RUN dotnet publish -c Release -o /app/publish
 
 FROM base AS final
