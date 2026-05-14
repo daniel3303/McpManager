@@ -269,3 +269,8 @@ app.MapMcpEndpoint();
 app.MapMcpNamespaceEndpoint();
 
 app.Run();
+
+namespace McpManager.Web.Portal
+{
+    public partial class Program { }
+}
