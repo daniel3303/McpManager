@@ -51,6 +51,22 @@
 
         <!-- Permissions - Right Column (narrower) -->
         <div class="col-span-12 lg:col-span-5">
+            <div class="card bg-base-100 border border-base-200 mb-4">
+                <div class="card-body p-3">
+                    <h3 class="fieldset-legend">Status</h3>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" asp-for="IsActive" class="toggle toggle-success" />
+                            <span class="text-sm">Active</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" asp-for="EmailConfirmed" class="toggle toggle-success" />
+                            <span class="text-sm">Email Confirmed</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div class="card bg-base-100 border border-base-200">
                 <div class="card-body p-3">
                     <h3 class="fieldset-legend">Permissions</h3>
