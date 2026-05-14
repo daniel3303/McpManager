@@ -5,7 +5,9 @@ using Xunit;
 
 namespace McpManager.IntegrationTests.Fixtures;
 
-public class WebFactoryFixture : WebApplicationFactory<McpManager.Web.Portal.Program>, IAsyncLifetime
+public class WebFactoryFixture
+    : WebApplicationFactory<McpManager.Web.Portal.Program>,
+        IAsyncLifetime
 {
     private string _dbPath;
 
