@@ -1,3 +1,4 @@
+using AngleSharp;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,5 +46,40 @@ public class WebFactoryFixture
         {
             services.AddFakeLogging();
         });
+    }
+
+    /// <summary>
+    /// Signs the seeded admin (admin@mcpmanager.local / 123456) in on the
+    /// provided client, fetching the antiforgery token from the rendered
+    /// login form first. The client must have HandleCookies enabled so the
+    /// antiforgery cookie and the resulting auth cookie are preserved.
+    /// </summary>
+    public async Task<HttpResponseMessage> SignInAsAdminAsync(
+        HttpClient client,
+        CancellationToken ct = default
+    )
+    {
+        var getResponse = await client.GetAsync("/Auth/Login", ct);
+        getResponse.EnsureSuccessStatusCode();
+        var html = await getResponse.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+
+        // Program.cs configures AddAntiforgery(opts => opts.FormFieldName = "AntiForgery").
+        var antiForgeryToken = document
+            .QuerySelector("form#loginForm input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = antiForgeryToken,
+                ["Email"] = "admin@mcpmanager.local",
+                ["Password"] = "123456",
+            }
+        );
+
+        return await client.PostAsync("/Auth/Login", form, ct);
     }
 }

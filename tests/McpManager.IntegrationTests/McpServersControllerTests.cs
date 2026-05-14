@@ -24,17 +24,7 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
         );
         var ct = TestContext.Current.CancellationToken;
 
-        await client.PostAsync(
-            "/Auth/Login",
-            new FormUrlEncodedContent(
-                new Dictionary<string, string>
-                {
-                    ["Email"] = "admin@mcpmanager.local",
-                    ["Password"] = "123456",
-                }
-            ),
-            ct
-        );
+        await _factory.SignInAsAdminAsync(client, ct);
 
         // Random guid that cannot exist in the seeded DB — exercises the
         // not-found branch. A regression that returns 500 (unhandled null) or
