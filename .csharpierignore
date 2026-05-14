@@ -1,0 +1,17 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# Frontend
+**/node_modules/
+**/wwwroot/dist/
+
+# EF Core auto-generated migration metadata
+**/Migrations/*.Designer.cs
+**/*ModelSnapshot.cs
+
+# Local data
+data/
+
+# Worktrees / scratch
+worktrees/
