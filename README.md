@@ -121,10 +121,10 @@ git clone https://github.com/daniel3303/McpManager.git
 cd McpManager
 
 # Build the frontend
-cd McpManager.Web.Portal && npm install && npx vite build && cd ..
+cd src/McpManager.Web.Portal && npm install && npx vite build && cd ../..
 
 # Run the application
-dotnet run --project McpManager.Web.Portal
+dotnet run --project src/McpManager.Web.Portal
 ```
 
 The app will be available at `http://localhost:5057`. Sign in with the default admin account shown in the [Quick Start](#quick-start) and change the password immediately.

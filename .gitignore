@@ -2,5 +2,6 @@ data/
 .idea/
 bin/
 obj/
+coverage/
 node_modules/
 *.user

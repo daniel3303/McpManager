@@ -20,7 +20,7 @@ prek install -f
 # 3. Verify your environment by running everything once
 prek run --all-files
 dotnet build McpManager.sln -c Release -warnaserror
-cd McpManager.Web.Portal && npm ci && npx vite build
+cd src/McpManager.Web.Portal && npm ci && npx vite build
 ```
 
 ## Branching
@@ -54,15 +54,15 @@ dotnet csharpier format .
 dotnet csharpier check .   # CI runs this
 
 # Frontend
-cd McpManager.Web.Portal && npm ci && npx vite build
+cd src/McpManager.Web.Portal && npm ci && npx vite build
 
 # Run the Portal locally (check launchSettings.json for ports)
-dotnet run --project McpManager.Web.Portal
+dotnet run --project src/McpManager.Web.Portal
 
 # Add an EF Core migration
 dotnet ef migrations add <Name> \
-    --project McpManager.Core.Data \
-    --startup-project McpManager.Web.Portal
+    --project src/McpManager.Core.Data \
+    --startup-project src/McpManager.Web.Portal
 
 # Run all pre-commit hooks against the whole repo
 prek run --all-files

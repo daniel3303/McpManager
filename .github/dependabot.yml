@@ -24,7 +24,7 @@ updates:
           - "Serilog*"
 
   - package-ecosystem: npm
-    directory: "/McpManager.Web.Portal"
+    directory: "/src/McpManager.Web.Portal"
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
