@@ -1,0 +1,5 @@
+[codespell]
+skip = .git,bin,obj,node_modules,data,wwwroot/dist,wwwroot/lib,*.Designer.cs,*ModelSnapshot.cs,*/package-lock.json,*/mvc-grid.js
+ignore-words = .codespellignore
+check-filenames =
+check-hidden =
