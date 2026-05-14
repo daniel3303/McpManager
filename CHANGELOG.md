@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Properties/launchSettings.json` UTF-8 BOM stripped so `check-json` accepts it.
 - `src/js/datepicker.js` — "occured" → "occurred" comment typo fix.
+- `README.md` — documented default admin credentials (`admin@mcpmanager.local` / `123456`) and reordered Getting Started so Docker appears before Run Locally (closes #2).
 
 ## [1.0.0] — 2026-02-28
 
