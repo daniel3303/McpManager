@@ -39,9 +39,7 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
         var response = await client.GetAsync("/Notifications/UnreadCount", ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response
-            .Content.Headers.ContentType!.MediaType.Should()
-            .Be("application/json");
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
 
         var body = await response.Content.ReadAsStringAsync(ct);
         // Anonymous DTO is `new { Count = ... }` (PascalCase in C#).
