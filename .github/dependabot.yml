@@ -1,0 +1,67 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+      entity-framework:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+      mcp:
+        patterns:
+          - "ModelContextProtocol*"
+      serilog:
+        patterns:
+          - "Serilog*"
+
+  - package-ecosystem: npm
+    directory: "/McpManager.Web.Portal"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    groups:
+      tailwind-stack:
+        patterns:
+          - "tailwindcss*"
+          - "@tailwindcss/*"
+          - "daisyui*"
+          - "postcss*"
+      vite-stack:
+        patterns:
+          - "vite*"
+          - "@vitejs/*"
+      jquery-stack:
+        patterns:
+          - "jquery*"
+          - "jquery-validation*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build"
+      include: "scope"
