@@ -5,6 +5,7 @@
 Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools, and expose them through a single unified MCP endpoint. Connect once, access everything.
 
 [![CI](https://github.com/daniel3303/McpManager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/daniel3303/McpManager/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/daniel3303/McpManager/graph/badge.svg?branch=main)](https://codecov.io/github/daniel3303/McpManager)
 [![Docker Image Version](https://img.shields.io/docker/v/daniel3303/mcpmanager?logo=docker&label=docker&sort=semver)](https://hub.docker.com/r/daniel3303/mcpmanager)
 [![Docker Pulls](https://img.shields.io/docker/pulls/daniel3303/mcpmanager?logo=docker)](https://hub.docker.com/r/daniel3303/mcpmanager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
