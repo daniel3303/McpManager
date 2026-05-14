@@ -42,9 +42,6 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
         var response = await client.GetAsync($"/McpServers/Show/{Guid.NewGuid()}", ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
-        response
-            .Headers.Location!.ToString()
-            .Should()
-            .EndWithEquivalentOf("/mcpservers");
+        response.Headers.Location!.ToString().Should().EndWithEquivalentOf("/mcpservers");
     }
 }

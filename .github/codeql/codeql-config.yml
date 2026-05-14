@@ -1,0 +1,10 @@
+name: McpManager CodeQL config
+
+paths-ignore:
+  # Auto-generated Razor source files compiled from .cshtml; not authored code.
+  - "**/obj/**"
+  - "**/bin/**"
+  - "**/node_modules/**"
+  - "**/wwwroot/dist/**"
+  # EF Core scaffolded migration code.
+  - "src/McpManager.Core.Data/Migrations/**"

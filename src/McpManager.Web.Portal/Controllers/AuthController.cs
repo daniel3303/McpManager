@@ -30,6 +30,7 @@ public class AuthController : BaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginDto loginDto)
     {
         if (!ModelState.IsValid)
