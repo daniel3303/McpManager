@@ -1,0 +1,9 @@
+# git-blame revisions to ignore.
+#
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honors this file automatically in the blame UI.
+
+# chore: add CSharpier formatter and apply project-wide format pass (#3)
+59f1980dc179be650a949260129a539944bce4b4
