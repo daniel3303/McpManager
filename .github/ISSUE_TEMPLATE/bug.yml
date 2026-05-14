@@ -1,0 +1,76 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. The more concrete the report, the faster it can be fixed.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear, one-paragraph description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Smallest possible set of steps / config / inputs that reproduces the bug.
+      placeholder: |
+        1. Configure an MCP server with transport=stdio and command=...
+        2. Open the Portal at /servers
+        3. Click "Sync tools"
+        4. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include error messages, stack traces, or screenshots if relevant.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: McpManager version
+      description: Docker tag, commit SHA, or release tag.
+      placeholder: "v1.0.0 / commit abcd123 / docker tag latest"
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: .NET runtime version
+      description: Output of `dotnet --version` (only if running outside Docker).
+      placeholder: "10.0.102"
+
+  - type: input
+    id: host
+    attributes:
+      label: Host OS / Docker host
+      placeholder: "macOS 15.2 / Ubuntu 24.04 / Docker Desktop 4.36"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste any relevant log output from `data/logs/` or `docker logs`.
+      render: shell

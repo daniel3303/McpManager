@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new feature or enhancement
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve? What's the user-visible pain today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Sketch the feature. UI, API, config, behaviour — whatever applies.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about and why you'd pick this one.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links to upstream MCP spec sections, related issues, screenshots, etc.
