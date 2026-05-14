@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
   checks: write
+  # Lets codecov-action mint a short-lived OIDC token instead of using a
+  # static CODECOV_TOKEN secret — public-repo friendly, no secret rotation.
+  id-token: write
 
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
@@ -83,7 +86,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: coverage/**/*.cobertura.xml
           flags: unit-integration
           fail_ci_if_error: false
