@@ -496,6 +496,29 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Uri");
     }
 
+    [Fact]
+    public async Task Create_SseWithBlankUri_ThrowsApplicationExceptionForUri()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "sse-no-uri",
+                    TransportType = McpTransportType.Sse,
+                    Uri = "",
+                }
+            );
+
+        // ValidateServer's Http/Sse blank-Uri guard (line 565) was uncovered —
+        // the existing HTTP test used a non-blank invalid URI (hits the later
+        // TryCreate guard, not this one). Collapsing it would persist an SSE
+        // server with no URI, crashing the client factory on first connect.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Uri");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
