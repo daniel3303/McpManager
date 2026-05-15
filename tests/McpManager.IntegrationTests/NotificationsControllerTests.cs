@@ -223,4 +223,60 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
         (await repo.Get(id1))!.IsRead.Should().BeTrue();
         (await repo.Get(id2))!.IsRead.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task PostMarkAsRead_WithUnreadNotification_MarksItReadAndRedirects()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid notificationId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            var created = await sp.GetRequiredService<NotificationManager>()
+                .Create(admin, title: $"mark-{Guid.NewGuid():N}", message: "x");
+            notificationId = created.Id;
+        }
+
+        var indexResp = await client.GetAsync("/Notifications", ct);
+        indexResp.EnsureSuccessStatusCode();
+        var html = await indexResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // MarkAsRead POST (lines 81-92) was uncovered: GetByUser scoping ->
+        // found-guard -> NotificationManager.MarkAsRead -> redirect to Index.
+        // Asserting the single row flips to read pins the per-user mutation (a
+        // regression dropping GetByUser would let a user clear others' badges).
+        var response = await client.PostAsync(
+            $"/Notifications/MarkAsRead/{notificationId}",
+            form,
+            ct
+        );
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<NotificationRepository>();
+        (await repo.Get(notificationId))!
+            .IsRead.Should()
+            .BeTrue("MarkAsRead must flip the targeted notification to read");
+    }
 }
