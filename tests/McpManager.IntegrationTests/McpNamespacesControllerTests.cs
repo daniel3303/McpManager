@@ -2,8 +2,12 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AngleSharp;
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Mcp;
+using McpManager.Core.Mcp;
+using McpManager.Core.Repositories.Mcp;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests;
@@ -68,5 +72,67 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
             .BeTrue(
                 $"Location should match /mcpnamespaces/show/<guid>, was '{response.Headers.Location}'"
             );
+    }
+
+    [Fact]
+    public async Task PostEdit_WithExistingIdAndValidChange_PersistsAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpNamespace ns;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            ns = await manager.Create(
+                new McpNamespace
+                {
+                    Name = "Before",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+        }
+
+        var getResp = await client.GetAsync($"/McpNamespaces/Edit/{ns.Id}", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+
+        var newName = $"After-{Guid.NewGuid():N}";
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = newName,
+                ["Slug"] = ns.Slug,
+                ["RateLimitRequestsPerMinute"] = "60",
+            }
+        );
+
+        // Edit POST happy path: namespace found + ModelState valid ->
+        // McpNamespaceManager.Update -> 302 to Show. The whole ~40-line action
+        // was uncovered; asserting the persisted rename pins that Update ran
+        // (a regression short-circuiting on not-found / ApplicationException
+        // would keep the old name or return a 200 re-render).
+        var response = await client.PostAsync($"/McpNamespaces/Edit/{ns.Id}", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verifyScope = _factory.Services.CreateScope();
+        var repo = verifyScope.ServiceProvider.GetRequiredService<McpNamespaceRepository>();
+        var reloaded = await repo.Get(ns.Id);
+        reloaded!.Name.Should().Be(newName, "Edit POST must persist the new name");
     }
 }
