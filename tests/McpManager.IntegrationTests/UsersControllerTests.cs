@@ -405,4 +405,55 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain("A user with this email already exists.");
     }
+
+    [Fact]
+    public async Task PostCreate_WithSelectedClaim_GrantsThatClaimToTheUser()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"claimed-{Guid.NewGuid():N}@example.com";
+        var getResp = await client.GetAsync("/Users/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "Claimed",
+                ["Surname"] = "User",
+                ["Email"] = email,
+                ["Password"] = "Passw0rd!",
+                ["ConfirmPassword"] = "Passw0rd!",
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+                ["Claims[0].Type"] = "Users",
+                ["Claims[0].IsSelected"] = "true",
+            }
+        );
+
+        // UpdateUserClaims' add-claim loop (the claimsToAdd foreach) was
+        // uncovered — every prior create/edit test left all claims unselected.
+        // Asserting the granted "Users" claim pins the authorization grant a
+        // regression (wrong diff, dropped AddClaimAsync) would silently lose.
+        var response = await client.PostAsync("/Users/Create", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var users = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var created = await users.FindByEmailAsync(email);
+        var claims = await users.GetClaimsAsync(created!);
+        claims.Should().Contain(c => c.Type == "Users", "the selected claim must be granted");
+    }
 }
