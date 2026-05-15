@@ -134,4 +134,49 @@ public class OpenApiSpecParserTests
         inputSchema.Should().Contain("\"enum\"");
         inputSchema.Should().Contain("date-time");
     }
+
+    [Fact]
+    public void ParseSpec_BodyWithNestedObjectProperty_RecursesIntoNestedProperties()
+    {
+        // ConvertSchemaToJObject's nested-object branch (schema.Properties set ->
+        // type:"object" + recurse) was uncovered: existing body tests use only
+        // flat leaf properties. A regression that stops recursing would flatten
+        // nested DTOs, so MCP clients lose the inner field shape entirely.
+        const string yamlSpec = """
+            openapi: 3.0.0
+            info:
+              title: T
+              version: "1"
+            paths:
+              /orders:
+                post:
+                  operationId: createOrder
+                  requestBody:
+                    content:
+                      application/json:
+                        schema:
+                          type: object
+                          properties:
+                            customer:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                age:
+                                  type: integer
+                  responses:
+                    '200':
+                      description: OK
+            """;
+
+        var operations = new OpenApiSpecParser().ParseSpec(yamlSpec);
+
+        operations.Should().HaveCount(1);
+        using var doc = System.Text.Json.JsonDocument.Parse(operations[0].InputSchema);
+        var customer = doc.RootElement.GetProperty("properties").GetProperty("customer");
+        customer.GetProperty("type").GetString().Should().Be("object");
+        var nested = customer.GetProperty("properties");
+        nested.TryGetProperty("name", out _).Should().BeTrue();
+        nested.TryGetProperty("age", out _).Should().BeTrue();
+    }
 }
