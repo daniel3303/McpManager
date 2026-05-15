@@ -130,6 +130,66 @@ public class McpServersFlowTests
             .Contain("echo", "SyncTools must discover the test stdio server's Echo tool");
     }
 
+    /// <summary>
+    /// Edit POST through the real browser: load an existing stdio server's
+    /// edit form, rename it, save. Exercises McpServersController.Edit (POST) —
+    /// found-guard, MapDtoToServer, McpServerManager.Update, the re-SyncTools
+    /// pass and the redirect — the largest McpServersController block still
+    /// uncovered after Create/Show.
+    /// </summary>
+    [Fact]
+    public async Task EditStdioServerThroughBrowser_PersistsRenameAndRedirectsToShow()
+    {
+        var page = await _e2e.NewPageAsync();
+        await LoginAsync(page);
+
+        var original = $"e2e-edit-{Guid.NewGuid():N}";
+        var showUrl = await CreateStdioServerViaBrowserAsync(page, original);
+        var id = Regex.Match(showUrl, "[0-9a-fA-F-]{36}").Value;
+
+        await page.GotoAsync($"/mcpservers/edit/{id}");
+        (await page.InputValueAsync("[name='Name']")).Should().Be(original);
+
+        var renamed = $"{original}-renamed";
+        await page.FillAsync("[name='Name']", renamed);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Save Changes" }).ClickAsync();
+
+        await page.WaitForURLAsync(
+            new Regex(@"/mcpservers/show/[0-9a-fA-F-]{36}$"),
+            new PageWaitForURLOptions { Timeout = 30_000 }
+        );
+        (await page.ContentAsync())
+            .Should()
+            .Contain(renamed, "Edit POST must persist the rename and round-trip it to Show");
+    }
+
+    private static async Task LoginAsync(IPage page)
+    {
+        await page.GotoAsync("/auth/login");
+        await page.FillAsync("[name='Email']", "admin@mcpmanager.local");
+        await page.FillAsync("[name='Password']", "123456");
+        await page.ClickAsync("#loginBtn");
+        await page.WaitForURLAsync(u => !u.Contains("/auth/login"));
+    }
+
+    private static async Task<string> CreateStdioServerViaBrowserAsync(IPage page, string name)
+    {
+        await page.GotoAsync("/mcpservers/create");
+        await page.FillAsync("[name='Name']", name);
+        await page.SelectOptionAsync("[name='TransportType']", "Stdio");
+        await page.Locator(".stdio-advanced-toggle").WaitForAsync();
+        await page.CheckAsync(".stdio-advanced-toggle");
+        await page.Locator("[name='Command']").WaitForAsync();
+        await page.FillAsync("[name='Command']", "dotnet");
+        await page.FillAsync("[name='ArgumentsText']", TestStdioServerLocator.DllPath);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Create Server" }).ClickAsync();
+        await page.WaitForURLAsync(
+            new Regex(@"/mcpservers/show/[0-9a-fA-F-]{36}$"),
+            new PageWaitForURLOptions { Timeout = 30_000 }
+        );
+        return page.Url;
+    }
+
     private async Task<string> CreateHttpServerAsync(string name)
     {
         var handler = new HttpClientHandler
