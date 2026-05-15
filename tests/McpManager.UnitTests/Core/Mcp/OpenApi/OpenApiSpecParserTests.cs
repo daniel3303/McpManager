@@ -179,4 +179,45 @@ public class OpenApiSpecParserTests
         nested.TryGetProperty("name", out _).Should().BeTrue();
         nested.TryGetProperty("age", out _).Should().BeTrue();
     }
+
+    [Fact]
+    public void ParseSpec_RequiredNonObjectBody_WrapsWholeBodyAsRequiredBodyParameter()
+    {
+        // BuildInputSchema's else branch (lines 182-188) was uncovered: when the
+        // request body schema is NOT an object-with-properties (here an array),
+        // the whole body must collapse to a single required "body" parameter. A
+        // regression would drop the body entirely, so the MCP tool loses its input.
+        const string yamlSpec = """
+            openapi: 3.0.0
+            info:
+              title: T
+              version: "1"
+            paths:
+              /bulk:
+                post:
+                  operationId: bulkUpload
+                  requestBody:
+                    required: true
+                    content:
+                      application/json:
+                        schema:
+                          type: array
+                          items:
+                            type: string
+                  responses:
+                    '200':
+                      description: OK
+            """;
+
+        var operations = new OpenApiSpecParser().ParseSpec(yamlSpec);
+
+        operations.Should().HaveCount(1);
+        using var doc = System.Text.Json.JsonDocument.Parse(operations[0].InputSchema);
+        doc.RootElement.GetProperty("properties").TryGetProperty("body", out _).Should().BeTrue();
+        doc.RootElement.GetProperty("required")
+            .EnumerateArray()
+            .Select(e => e.GetString())
+            .Should()
+            .Contain("body");
+    }
 }
