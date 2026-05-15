@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Authentication;
 using McpManager.Core.Data.Models.Mcp;
 using McpManager.Core.Mcp;
 using McpManager.Core.Repositories.Mcp;
@@ -138,6 +139,30 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         healthy.Should().BeFalse();
         server.LastError.Should().NotBeNullOrWhiteSpace();
         server.LastError.Should().Contain("Failed to connect");
+    }
+
+    [Fact]
+    public async Task Create_HttpWithBearerAuthAndNoToken_ThrowsApplicationExceptionForAuthToken()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "bearer-no-token",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://example.invalid/mcp",
+                    Auth = new Auth { Type = AuthType.Bearer, Token = "" },
+                }
+            );
+
+        // ValidateServer's Auth switch (case Bearer) was uncovered: an HTTP
+        // server configured for Bearer auth must reject a blank token before
+        // persistence. A regression collapsing the auth switch would let a
+        // tokenless Bearer server through and 401 every proxied request.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Auth.Token");
     }
 
     private McpServerManager ResolveServerManager()
