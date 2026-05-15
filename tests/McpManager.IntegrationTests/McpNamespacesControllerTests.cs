@@ -646,4 +646,67 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         reloaded!.NameOverride.Should().Be("friendly_name");
         reloaded.DescriptionOverride.Should().Be("friendly description");
     }
+
+    [Fact]
+    public async Task GetShow_WithNamespaceServerHavingTools_GroupsNsToolsByServer()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid nsId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            var ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "ShowTools",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            nsId = ns.Id;
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"showtool-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var link = await nsManager.AddServer(ns, server);
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            var tool = tools.Add(
+                new McpTool
+                {
+                    Name = "grouped_tool",
+                    McpServerId = server.Id,
+                    InputSchema = "{}",
+                }
+            );
+            await tools.SaveChanges();
+            var nsTools = scope.ServiceProvider.GetRequiredService<McpNamespaceToolRepository>();
+            nsTools.Add(
+                new McpNamespaceTool { McpNamespaceServerId = link.Id, McpToolId = tool.Id }
+            );
+            await nsTools.SaveChanges();
+        }
+
+        // Show's ns-tools aggregation (lines 102-108: query + GroupBy +
+        // ToDictionary) was uncovered — the existing Show test had no ns tools,
+        // so the grouping projections never ran. A regression keying the
+        // dictionary wrong would render the tool under the wrong server card.
+        var response = await client.GetAsync($"/McpNamespaces/Show/{nsId}", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("grouped_tool");
+    }
 }
