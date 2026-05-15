@@ -61,4 +61,17 @@ public class McpProxyHelpersTests
         result.GetProperty("type").GetString().Should().Be("object");
         result.EnumerateObject().Select(p => p.Name).Should().Equal("type");
     }
+
+    [Fact]
+    public void ParseInputSchema_RootMissingTypeWithItems_InjectsObjectTypeAndKeepsItems()
+    {
+        // Two uncovered SanitizeSchema branches: root type-injection (line 53,
+        // root with no "type" gets "object") and the array-items recursion
+        // (line 87). Claude's 2020-12 API requires a root type; dropping the
+        // injection would make every typeless tool schema rejected.
+        var result = McpProxyHelpers.ParseInputSchema("{\"items\":{\"type\":\"string\"}}");
+
+        result.GetProperty("type").GetString().Should().Be("object");
+        result.GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+    }
 }
