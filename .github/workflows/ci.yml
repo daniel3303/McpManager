@@ -75,6 +75,13 @@ jobs:
       - name: Build solution
         run: dotnet build McpManager.sln -c Release --no-restore
 
+      # The functional (Playwright) tier needs a Chromium browser. Pin the npm
+      # Playwright to the same version as the Microsoft.Playwright NuGet package
+      # so the installed browser build matches the .NET driver; the e2e fixture
+      # falls back from system Chrome to this bundled Chromium on CI runners.
+      - name: Install Playwright browsers
+        run: npx --yes playwright@1.55.0 install --with-deps chromium
+
       # MTP-native flags after `--`: xUnit v3 runs under Microsoft.Testing.Platform,
       # which doesn't honour VSTest-style --collect/--logger/--settings. Coverage and
       # TRX come from Microsoft.Testing.Extensions.CodeCoverage / .TrxReport packages
