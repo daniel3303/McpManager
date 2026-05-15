@@ -36,6 +36,26 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task GetShow_WithExistingId_LoadsRecentLogsAndRendersServer()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"show-{Guid.NewGuid():N}");
+
+        // Only the not-found branch of Show was covered. The found path (lines
+        // 99-104) runs the RecentLogs query (GetByServer().Take(20)) and renders
+        // the detail view — a regression in that query or the view throws a 500
+        // on the server-detail page, the app's primary drill-down.
+        var response = await client.GetAsync($"/McpServers/Show/{server.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(server.Name);
+    }
+
+    [Fact]
     public async Task PostDelete_WithUnknownId_RedirectsToIndex()
     {
         var client = CreateAdminClient();
