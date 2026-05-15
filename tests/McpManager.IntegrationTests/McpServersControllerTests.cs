@@ -173,6 +173,41 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostEdit_WithExistingIdAndValidChange_PersistsAndRedirectsToShow()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"edit-post-{Guid.NewGuid():N}");
+        var newName = $"renamed-{Guid.NewGuid():N}";
+        var token = await HarvestAntiforgeryAsync(client, $"/McpServers/Edit/{server.Id}", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = newName,
+                ["TransportType"] = "Http",
+                ["Uri"] = "https://upstream.invalid/mcp",
+            }
+        );
+
+        // Edit POST happy path: server found + ModelState valid -> MapDtoToServer
+        // -> McpServerManager.Update -> SyncTools (fails on the invalid host ->
+        // Warning branch) -> 302 to Show. The whole ~50-line action body was
+        // uncovered; asserting the persisted rename pins that Update actually
+        // ran (a regression short-circuiting before Update keeps the old name).
+        var response = await client.PostAsync($"/McpServers/Edit/{server.Id}", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var scope = _factory.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var reloaded = await repo.Get(server.Id);
+        reloaded!.Name.Should().Be(newName, "Edit POST must persist the new name");
+    }
+
+    [Fact]
     public async Task GetEditTool_WithSchemaAndCustomSchema_RendersArgumentWithMergedDescriptions()
     {
         var client = CreateAdminClient();
