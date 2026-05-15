@@ -1,3 +1,7 @@
+# Disable Codecov's automated pull-request comments. Status checks and the
+# dashboard still work; only the per-PR comment is suppressed.
+comment: false
+
 coverage:
   status:
     project:
