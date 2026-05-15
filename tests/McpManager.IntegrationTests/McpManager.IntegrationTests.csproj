@@ -22,5 +22,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\McpManager.Web.Portal\McpManager.Web.Portal.csproj" />
+    <!-- Build the stdio MCP test server alongside this project so its
+         compiled output is available on disk for tests to spawn. We do not
+         want its types referenced from test code, only the binary built. -->
+    <ProjectReference Include="..\McpManager.TestStdioServer\McpManager.TestStdioServer.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <Private>false</Private>
+    </ProjectReference>
   </ItemGroup>
 </Project>
