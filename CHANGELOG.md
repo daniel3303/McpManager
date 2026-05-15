@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.1.1] — 2026-05-15
+
+### Fixed
+
+- Dockerfile installs Node 22 via NodeSource in both base and build stages. The Debian apt default (Node 18) is too old for Vite 8 / Tailwind 4 / rolldown — the v1.1.0 docker-publish run failed during `npm ci && npm run build` because of this. CI on GitHub-hosted runners has Node 20+ in PATH so the regression was invisible until the tag fired the Docker workflow. The `daniel3303/mcpmanager:1.1.0` image was never published; this is the first 1.1.x with a working Docker artifact.
+
 ## [1.1.0] — 2026-05-15
 
 ### Added
@@ -65,6 +71,7 @@ Initial public release.
 - Serilog logging to console + rolling files under `data/logs/`.
 - Multi-arch Docker image (`linux/amd64`, `linux/arm64`) published to Docker Hub on tag push.
 
-[Unreleased]: https://github.com/daniel3303/McpManager/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/daniel3303/McpManager/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/daniel3303/McpManager/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/daniel3303/McpManager/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/daniel3303/McpManager/releases/tag/v1.0.0
