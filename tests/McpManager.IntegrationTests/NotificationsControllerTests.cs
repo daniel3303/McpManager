@@ -171,4 +171,56 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(notificationId);
         reloaded.Should().BeNull("Delete must remove the notification row");
     }
+
+    [Fact]
+    public async Task PostMarkAllAsRead_WithUnreadNotifications_MarksThemAllReadAndRedirects()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid id1;
+        Guid id2;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            var manager = sp.GetRequiredService<NotificationManager>();
+            id1 = (await manager.Create(admin, title: $"a-{Guid.NewGuid():N}")).Id;
+            id2 = (await manager.Create(admin, title: $"b-{Guid.NewGuid():N}")).Id;
+        }
+
+        var indexResp = await client.GetAsync("/Notifications", ct);
+        indexResp.EnsureSuccessStatusCode();
+        var html = await indexResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // MarkAllAsRead (lines 96-102) was uncovered: GetAuthenticatedUser ->
+        // NotificationManager.MarkAllAsRead -> flash + redirect. Asserting both
+        // seeded notifications flip to read pins the bulk mutation (a regression
+        // scoping it wrong would leave the bell badge stuck or clear others').
+        var response = await client.PostAsync("/Notifications/MarkAllAsRead", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<NotificationRepository>();
+        (await repo.Get(id1))!.IsRead.Should().BeTrue();
+        (await repo.Get(id2))!.IsRead.Should().BeTrue();
+    }
 }
