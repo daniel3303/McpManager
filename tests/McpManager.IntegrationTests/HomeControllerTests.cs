@@ -1,6 +1,11 @@
 using System.Net;
+using System.Text.Json;
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.ApiKeys;
+using McpManager.Core.Mcp;
 using McpManager.IntegrationTests.Fixtures;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests;
@@ -33,5 +38,37 @@ public class HomeControllerTests : IClassFixture<WebFactoryFixture>
         location.Should().StartWithEquivalentOf("/auth/login");
         location.Should().Contain("ReturnUrl=");
         location.Should().ContainEquivalentOf("home");
+    }
+
+    [Fact]
+    public async Task GetActiveApiKey_WithActiveKey_ReturnsSuccessJsonWithKey()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            await manager.Create(new ApiKey { Name = $"home-key-{Guid.NewGuid():N}" });
+        }
+
+        // ActiveApiKey's found path was uncovered (whole HomeController body is
+        // 0%): it surfaces a real API key to the dashboard JS. A regression in
+        // the IsActive filter or the JSON shape would break the dashboard's
+        // copy-key widget while the page still loads.
+        var response = await client.GetAsync("/Home/ActiveApiKey", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
+        doc.RootElement.GetProperty("key").GetString().Should().NotBeNullOrEmpty();
     }
 }
