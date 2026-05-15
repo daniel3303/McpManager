@@ -156,4 +156,46 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await users2.FindByEmailAsync(email);
         reloaded!.GivenName.Should().Be("After", "Edit POST must persist the new given name");
     }
+
+    [Fact]
+    public async Task GetShow_WithExistingUser_RendersUserDetailPage()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"show-{Guid.NewGuid():N}@example.com";
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var user = new User
+            {
+                GivenName = "Grace",
+                Surname = "Hopper",
+                Email = email,
+                UserName = email,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(user, "Passw0rd!")).Succeeded.Should().BeTrue();
+            userId = user.Id;
+        }
+
+        // Show was entirely uncovered (lines 60-76): found-guard bypass +
+        // ClaimStore.ClaimGroups() ViewData + View(user). Show has no
+        // [HttpGet("{id}")] so id binds from the query string. A regression in
+        // the claim-groups load or the view throws a 500 on the user-detail page.
+        var response = await client.GetAsync($"/Users/Show?id={userId}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(email);
+    }
 }
