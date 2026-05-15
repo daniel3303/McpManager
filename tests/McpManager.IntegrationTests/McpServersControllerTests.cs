@@ -171,6 +171,60 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
         remaining.Should().BeFalse("Delete must remove the row");
     }
 
+    [Fact]
+    public async Task GetEdit_WithNpxStdioServer_RendersNpmPackageAndExtraArgumentsInSimpleMode()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"npx-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Stdio,
+                    Command = "npx",
+                    Arguments =
+                    [
+                        "-y",
+                        "@modelcontextprotocol/server-filesystem",
+                        "/tmp",
+                        "--verbose",
+                    ],
+                }
+            );
+        }
+
+        // Only an `npx -y <pkg>` Stdio server takes the simple-mode branch in
+        // McpServersController.MapServerToDto (UseAdvancedCommand=false), which
+        // sets NpmPackage=Arguments[1] and ExtraArguments=Arguments.Skip(2)
+        // newline-joined. Every other Edit test seeds an HTTP server and only
+        // exercises the advanced else-branch, so this is the sole cover for the
+        // npx detection: a regression that mis-slices the args (e.g. Skip(1), or
+        // dropping the `-y` guard) would render the package as a raw argument.
+        var response = await client.GetAsync($"/McpServers/Edit/{server.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+
+        document
+            .QuerySelector("input[name='NpmPackage']")!
+            .GetAttribute("value")
+            .Should()
+            .Be("@modelcontextprotocol/server-filesystem");
+
+        var extraArguments = document.QuerySelector("textarea[name='ExtraArguments']")!.TextContent;
+        extraArguments.Should().Contain("/tmp");
+        extraArguments.Should().Contain("--verbose");
+    }
+
     private async Task<McpServer> SeedHttpServerAsync(string name)
     {
         using var scope = _factory.Services.CreateScope();
