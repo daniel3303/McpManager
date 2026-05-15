@@ -425,6 +425,29 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Auth.Username");
     }
 
+    [Fact]
+    public async Task Create_StdioWithBlankCommand_ThrowsApplicationExceptionForCommand()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "stdio-no-command",
+                    TransportType = McpTransportType.Stdio,
+                    Command = "",
+                }
+            );
+
+        // ValidateServer's Stdio else-branch guard (blank Command) was the last
+        // uncovered transport guard. A regression collapsing it would persist a
+        // Stdio server with no command — the client factory then fails to spawn
+        // a process and every tool call on that server errors.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Command");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
