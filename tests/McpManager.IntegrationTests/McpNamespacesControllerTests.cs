@@ -236,4 +236,56 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var linked = nsServerRepo.GetByNamespace(ns).Any(s => s.McpServerId == server.Id);
         linked.Should().BeTrue("AddServer must persist the namespace-server link");
     }
+
+    [Fact]
+    public async Task PostDelete_WithExistingNamespace_RemovesItAndRedirectsToIndex()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpNamespace ns;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            ns = await manager.Create(
+                new McpNamespace
+                {
+                    Name = "ToDelete",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // Delete (lines 232-244) was uncovered: found-guard bypass ->
+        // NamespaceManager.Delete -> flash + redirect to Index. Asserting the
+        // row is gone pins the delete side effect (a regression short-circuiting
+        // before Delete would 302 but leave the namespace queryable).
+        var response = await client.PostAsync($"/McpNamespaces/Delete/{ns.Id}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<McpNamespaceRepository>();
+        var reloaded = await repo.Get(ns.Id);
+        reloaded.Should().BeNull("Delete must remove the namespace row");
+    }
 }
