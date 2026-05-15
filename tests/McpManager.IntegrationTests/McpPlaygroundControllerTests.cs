@@ -106,4 +106,55 @@ public class McpPlaygroundControllerTests : IClassFixture<WebFactoryFixture>
             .Should()
             .NotBeNull("the integer property must render as a numeric input");
     }
+
+    [Fact]
+    public async Task GetGetTools_WithServerHavingTool_ReturnsToolJsonUsingDescriptionFallback()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"pg-tools-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            tools.Add(
+                new McpTool
+                {
+                    Name = "search_docs",
+                    Description = "fallback-desc",
+                    CustomDescription = null,
+                    McpServerId = server.Id,
+                    InputSchema = "{}",
+                }
+            );
+            await tools.SaveChanges();
+        }
+
+        // GetTools' found path (lines 57-72) was uncovered — only the 404 case
+        // was. The projection uses `CustomDescription ?? Description`; with a
+        // null custom desc the fallback must surface the original Description.
+        // A regression flipping the coalesce would blank the playground list.
+        var response = await client.GetAsync($"/McpPlayground/GetTools?serverId={server.Id}", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("search_docs");
+        body.Should().Contain("fallback-desc");
+    }
 }
