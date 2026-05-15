@@ -21,6 +21,26 @@ public sealed class E2eFixture : IAsyncLifetime
     {
         await _host.InitializeAsync();
 
+        // Fail fast with an actionable message if the Vite bundle isn't being
+        // served — JS-driven flows would otherwise present as confusing
+        // Playwright timeouts. CI builds the frontend before `dotnet build`;
+        // locally it's a prerequisite (the .NET static-assets manifest is
+        // baked at build time, so a runtime rebuild can't fix it).
+        using (var probe = new HttpClient { BaseAddress = new Uri(_host.BaseUrl) })
+        {
+            var bundle = await probe.GetAsync("/dist/bundle.js");
+            if (!bundle.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    "/dist/bundle.js is not served (status "
+                        + (int)bundle.StatusCode
+                        + "). Build the frontend before the e2e tier:\n"
+                        + "  cd src/McpManager.Web.Portal && npm ci && npm run build\n"
+                        + "then rebuild the solution. CI does this automatically."
+                );
+            }
+        }
+
         // Best-effort: provision the bundled chromium (CI path / cold cache).
         // Not fatal — locally we drive the installed system Chrome, so a flaky
         // browser-zip download must not break the suite.

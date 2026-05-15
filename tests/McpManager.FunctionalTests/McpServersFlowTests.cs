@@ -2,6 +2,8 @@ using System.Net;
 using System.Text.RegularExpressions;
 using AwesomeAssertions;
 using McpManager.FunctionalTests.Fixtures;
+using McpManager.FunctionalTests.Support;
+using Microsoft.Playwright;
 using Xunit;
 
 namespace McpManager.FunctionalTests;
@@ -80,6 +82,52 @@ public class McpServersFlowTests
         // a regression in the projection renders a blank/wrong edit form.
         var nameValue = await page.InputValueAsync("[name='Name']");
         nameValue.Should().Be(name);
+    }
+
+    /// <summary>
+    /// The highest-value e2e flow: a real browser drives the JS-powered create
+    /// form (transport-partial reload + advanced-command toggle, all from the
+    /// Vite bundle), registering a real stdio MCP upstream. This exercises
+    /// McpServersController.Create + MapDtoToServer's Stdio branch + the LIVE
+    /// SyncTools success path + Show-with-tools — the largest uncovered cluster,
+    /// unreachable without both a browser (JS) and a real upstream.
+    /// </summary>
+    [Fact]
+    public async Task CreateStdioServerThroughBrowser_SyncsLiveToolsAndShowsThem()
+    {
+        var page = await _e2e.NewPageAsync();
+
+        await page.GotoAsync("/auth/login");
+        await page.FillAsync("[name='Email']", "admin@mcpmanager.local");
+        await page.FillAsync("[name='Password']", "123456");
+        await page.ClickAsync("#loginBtn");
+        await page.WaitForURLAsync(u => !u.Contains("/auth/login"));
+
+        await page.GotoAsync("/mcpservers/create");
+        var name = $"e2e-stdio-{Guid.NewGuid():N}";
+        await page.FillAsync("[name='Name']", name);
+
+        // Bundle JS reloads the transport partial on select, then the advanced
+        // toggle reveals Command/ArgumentsText — Playwright auto-waits for each.
+        await page.SelectOptionAsync("[name='TransportType']", "Stdio");
+        await page.Locator(".stdio-advanced-toggle").WaitForAsync();
+        await page.CheckAsync(".stdio-advanced-toggle");
+        await page.Locator("[name='Command']").WaitForAsync();
+        await page.FillAsync("[name='Command']", "dotnet");
+        await page.FillAsync("[name='ArgumentsText']", TestStdioServerLocator.DllPath);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Create Server" }).ClickAsync();
+
+        // Create -> MapDtoToServer (Stdio) -> McpServerManager.Create ->
+        // SyncTools spawns the real stdio server -> redirect to Show, which
+        // lists the discovered "echo" tool.
+        await page.WaitForURLAsync(
+            new Regex(@"/mcpservers/show/[0-9a-fA-F-]{36}$"),
+            new PageWaitForURLOptions { Timeout = 30_000 }
+        );
+        (await page.ContentAsync())
+            .Should()
+            .Contain("echo", "SyncTools must discover the test stdio server's Echo tool");
     }
 
     private async Task<string> CreateHttpServerAsync(string name)
