@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Authentication;
 using McpManager.Core.Data.Models.Mcp;
 using McpManager.Core.Mcp;
 using McpManager.Core.Repositories.Mcp;
@@ -66,5 +67,35 @@ public class McpImportExportManagerTests : IClassFixture<WebFactoryFixture>
             .ContainKey("API_KEY")
             .WhoseValue.Should()
             .Be("secret");
+    }
+
+    [Fact]
+    public async Task Import_WithBearerAuthHeaderAndCustomHeader_MapsAuthAndCustomHeaders()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpImportExportManager>();
+        var ct = TestContext.Current.CancellationToken;
+
+        var name = $"hdr-import-{Guid.NewGuid():N}";
+        var json =
+            "{\"mcpServers\":{\""
+            + name
+            + "\":{\"url\":\"https://api.example.invalid/mcp\",\"headers\":{"
+            + "\"Authorization\":\"Bearer secret123\",\"X-Trace\":\"on\"}}}}";
+
+        // BuildServerFromConfig's headers loop (lines ~206-230) was uncovered:
+        // an Authorization: Bearer header must become Auth.Bearer+Token, and a
+        // non-auth header must land in CustomHeaders. A regression here would
+        // import a server that can't authenticate upstream.
+        var result = await sut.Import(json);
+
+        result.Success.Should().BeTrue();
+        result.Imported.Should().BeGreaterThan(0);
+
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
+        created.Auth.Type.Should().Be(AuthType.Bearer);
+        created.Auth.Token.Should().Be("secret123");
+        created.CustomHeaders.Should().ContainKey("X-Trace").WhoseValue.Should().Be("on");
     }
 }
