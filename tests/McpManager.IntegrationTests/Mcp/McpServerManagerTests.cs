@@ -278,6 +278,71 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         result.ToolsAdded.Should().BeGreaterThan(0, "the spec defines one operation");
     }
 
+    [Fact]
+    public async Task SyncTools_OpenApiResyncWithChangedSpec_UpdatesAndRemovesTools()
+    {
+        var sut = ResolveServerManager();
+        const string specWithBoth = """
+            openapi: 3.0.0
+            info:
+              title: T
+              version: "1"
+            paths:
+              /alpha:
+                get:
+                  operationId: alpha
+                  summary: A first
+                  responses:
+                    '200':
+                      description: OK
+              /beta:
+                get:
+                  operationId: beta
+                  summary: B
+                  responses:
+                    '200':
+                      description: OK
+            """;
+        const string specAlphaChangedOnly = """
+            openapi: 3.0.0
+            info:
+              title: T
+              version: "1"
+            paths:
+              /alpha:
+                get:
+                  operationId: alpha
+                  summary: A changed
+                  responses:
+                    '200':
+                      description: OK
+            """;
+
+        var server = await sut.Create(
+            new McpServer
+            {
+                Name = $"resync-{Guid.NewGuid():N}",
+                TransportType = McpTransportType.OpenApi,
+                Uri = "https://api.example.invalid/",
+                OpenApiSpecification = specWithBoth,
+            }
+        );
+        await sut.SyncTools(server); // adds alpha + beta
+
+        server.OpenApiSpecification = specAlphaChangedOnly;
+        await sut.Update(server);
+
+        // Re-sync: MergeTools' update path (alpha summary changed -> ToolsUpdated)
+        // and remove path (beta gone from spec -> ToolsRemoved) were uncovered;
+        // only the add path was. A regression in the diff would duplicate alpha
+        // or orphan beta on every re-sync.
+        var result = await sut.SyncTools(server);
+
+        result.Success.Should().BeTrue();
+        result.ToolsUpdated.Should().BeGreaterThan(0, "alpha's description changed");
+        result.ToolsRemoved.Should().BeGreaterThan(0, "beta was dropped from the spec");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
