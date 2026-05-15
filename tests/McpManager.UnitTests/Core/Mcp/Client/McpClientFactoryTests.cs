@@ -65,6 +65,38 @@ public class McpClientFactoryTests
         auth.Parameter.Should().Be("tok-abc-123");
     }
 
+    // Pins the ApiKey branch and the CustomHeaders loop in ConfigureHttpClient
+    // together: the API-key name/value go in as a request header (not Authorization),
+    // and every CustomHeaders entry is added verbatim. Catches a regression that
+    // routes the API key through Authorization, or drops custom headers.
+    [Fact]
+    public async Task Create_HttpServerWithApiKeyAuthAndCustomHeader_SetsApiKeyAndCustomHeaders()
+    {
+        var factoryStub = new CapturingHttpClientFactory();
+        var sut = new McpClientFactory(factoryStub);
+        var server = new McpServer
+        {
+            Name = "apikey-server",
+            TransportType = McpTransportType.Http,
+            Uri = "http://localhost:1/mcp",
+            Auth = new Auth
+            {
+                Type = AuthType.ApiKey,
+                ApiKeyName = "X-Api-Key",
+                ApiKeyValue = "key-789",
+            },
+            CustomHeaders = { ["X-Tenant"] = "acme" },
+        };
+
+        var act = async () => await sut.Create(server);
+
+        await act.Should().ThrowAsync<Exception>();
+        var headers = factoryStub.Created.DefaultRequestHeaders;
+        headers.Authorization.Should().BeNull();
+        headers.GetValues("X-Api-Key").Should().ContainSingle().Which.Should().Be("key-789");
+        headers.GetValues("X-Tenant").Should().ContainSingle().Which.Should().Be("acme");
+    }
+
     private sealed class CapturingHttpClientFactory : IHttpClientFactory
     {
         public HttpClient Created { get; private set; }
