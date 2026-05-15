@@ -18,12 +18,13 @@ public class NotificationManagerTests : IClassFixture<WebFactoryFixture>
     [Fact]
     public async Task Create_WithWarningTypeAndNullIcon_AssignsExclamationTriangleIcon()
     {
+        var ct = TestContext.Current.CancellationToken;
         using var scope = _factory.Services.CreateScope();
         var sp = scope.ServiceProvider;
         var sut = sp.GetRequiredService<NotificationManager>();
         var admin = await sp.GetRequiredService<UserRepository>()
             .GetAll()
-            .FirstAsync(u => u.Email == "admin@mcpmanager.local");
+            .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
 
         var notification = await sut.Create(
             admin,
