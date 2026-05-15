@@ -198,4 +198,80 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain(email);
     }
+
+    [Fact]
+    public async Task PostEdit_ChangingEmailToAnotherUsersEmail_ReRendersWithConflictError()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var emailA = $"a-{Guid.NewGuid():N}@example.com";
+        var emailB = $"b-{Guid.NewGuid():N}@example.com";
+        Guid userAId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var a = new User
+            {
+                GivenName = "A",
+                Surname = "A",
+                Email = emailA,
+                UserName = emailA,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(a, "Passw0rd!")).Succeeded.Should().BeTrue();
+            userAId = a.Id;
+            var b = new User
+            {
+                GivenName = "B",
+                Surname = "B",
+                Email = emailB,
+                UserName = emailB,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(b, "Passw0rd!")).Succeeded.Should().BeTrue();
+        }
+
+        var getResp = await client.GetAsync($"/Users/Edit?id={userAId}", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "A",
+                ["Surname"] = "A",
+                ["Email"] = emailB, // collides with user B
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+            }
+        );
+
+        // Edit POST email-conflict branch (lines 188-197) was uncovered: when
+        // the email changes to one another user already owns, it must re-render
+        // the form (200) with a ModelState error, NOT 302/persist. A regression
+        // dropping the conflict check would let two users share an email.
+        var response = await client.PostAsync($"/Users/Edit?id={userAId}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("A user with this email already exists.");
+
+        using var verify = _factory.Services.CreateScope();
+        var users2 = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var reloaded = await users2.FindByIdAsync(userAId.ToString());
+        reloaded!.Email.Should().Be(emailA, "the conflicting email change must not persist");
+    }
 }
