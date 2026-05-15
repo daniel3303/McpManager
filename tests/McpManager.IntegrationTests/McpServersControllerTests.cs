@@ -177,6 +177,54 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task GetEdit_WithCustomHeaders_MapsHeaderDictionaryIntoRenderedForm()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"hdrs-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                    CustomHeaders = new Dictionary<string, string> { ["X-Trace"] = "abc123" },
+                    EnvironmentVariables = new Dictionary<string, string> { ["E"] = "v" },
+                }
+            );
+        }
+
+        // Edit GET runs MapServerToDto's CustomHeaders/EnvironmentVariables
+        // Select projections (controller lines 603-614) only when the server
+        // actually has entries — every other Edit test seeds an empty dict so
+        // those lambdas never run. Asserting the rendered header value pins the
+        // kvp->CustomHeaderDto mapping (a Key/Value swap regression flips it).
+        var response = await client.GetAsync($"/McpServers/Edit/{server.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+
+        document
+            .QuerySelector("input[name='CustomHeaders[0].Key']")!
+            .GetAttribute("value")
+            .Should()
+            .Be("X-Trace");
+        document
+            .QuerySelector("input[name='CustomHeaders[0].Value']")!
+            .GetAttribute("value")
+            .Should()
+            .Be("abc123");
+    }
+
+    [Fact]
     public async Task GetEdit_WithExistingId_RendersFormPrefilledWithServerName()
     {
         var client = CreateAdminClient();
