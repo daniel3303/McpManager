@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using AngleSharp;
 using AwesomeAssertions;
 using McpManager.Core.Data.Models.Mcp;
@@ -169,6 +170,39 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
         var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
         var remaining = await repo.GetAll().AnyAsync(s => s.Id == server.Id, ct);
         remaining.Should().BeFalse("Delete must remove the row");
+    }
+
+    [Fact]
+    public async Task PostPreviewCommand_NpxMode_ReturnsBuiltNpxCommandPreviewJson()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["UseAdvancedCommand"] = "false",
+                ["NpmPackage"] = "@modelcontextprotocol/server-filesystem",
+            }
+        );
+
+        // PreviewCommand is a pure JSON endpoint that picks the npx branch when
+        // UseAdvancedCommand=false: BuildNpxCommand -> ("npx", ["-y", pkg]) ->
+        // BuildCommandPreview joins with spaces. Nothing else exercises this
+        // action; a regression that flips the ternary (advanced vs npx) or
+        // drops the "-y" prefix surfaces directly in the returned preview.
+        var response = await client.PostAsync("/McpServers/PreviewCommand", form, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("preview")
+            .GetString()
+            .Should()
+            .Be("npx -y @modelcontextprotocol/server-filesystem");
     }
 
     [Fact]
