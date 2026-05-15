@@ -173,6 +173,34 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostImport_WithValidClaudeDesktopJson_CreatesServerAndRendersResult()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var name = $"imported-{Guid.NewGuid():N}";
+        var json = "{\"mcpServers\":{\"" + name + "\":{\"url\":\"https://upstream.invalid/mcp\"}}}";
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Import", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token, ["json"] = json }
+        );
+
+        // Import POST success path: non-empty json -> McpImportExportManager.Import
+        // -> result.Success -> success flash + ViewData["ImportResult"] + View
+        // (controller lines ~385-406, all uncovered). Asserting the row was
+        // actually created pins that the import ran end-to-end, not just that
+        // the view rendered.
+        var response = await client.PostAsync("/McpServers/Import", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().AnyAsync(s => s.Name == name, ct);
+        created.Should().BeTrue("Import must persist the server from the Claude Desktop JSON");
+    }
+
+    [Fact]
     public async Task PostPreviewOpenApiTools_WithValidSpec_ReturnsParsedToolsJson()
     {
         var client = CreateAdminClient();
