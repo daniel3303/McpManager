@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using AwesomeAssertions;
 using McpManager.Core.Data.Models.ApiKeys;
+using McpManager.Core.Data.Models.Mcp;
 using McpManager.Core.Mcp;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -70,5 +71,41 @@ public class HomeControllerTests : IClassFixture<WebFactoryFixture>
         using var doc = JsonDocument.Parse(json);
         doc.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
         doc.RootElement.GetProperty("key").GetString().Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task GetIndex_AsAuthenticatedAdmin_RendersDashboardWithStatCounts()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            await manager.Create(
+                new McpServer
+                {
+                    Name = $"home-srv-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+        }
+
+        // Index's four aggregate-count ViewData assignments (lines 33-39) were
+        // uncovered. The view unboxes each via (int)ViewData[...]; dropping any
+        // assignment (or breaking a Count predicate) would 500 the dashboard.
+        var response = await client.GetAsync("/Home", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("Dashboard Overview");
     }
 }
