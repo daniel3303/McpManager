@@ -52,6 +52,36 @@ public class McpServersFlowTests
         (await page.ContentAsync()).Should().Contain(name);
     }
 
+    /// <summary>
+    /// Edit GET renders the Form populated by <c>MapServerToDto</c> — a large
+    /// controller block (server→dto projection) only reachable through the real
+    /// pipeline + redirect round-trip, not the in-memory integration tests.
+    /// </summary>
+    [Fact]
+    public async Task EditServer_RendersFormPopulatedFromExistingServer()
+    {
+        var page = await _e2e.NewPageAsync();
+
+        await page.GotoAsync("/auth/login");
+        await page.FillAsync("[name='Email']", "admin@mcpmanager.local");
+        await page.FillAsync("[name='Password']", "123456");
+        await page.ClickAsync("#loginBtn");
+        await page.WaitForURLAsync(u => !u.Contains("/auth/login"));
+
+        var name = $"e2e-edit-{Guid.NewGuid():N}";
+        var showLocation = await CreateHttpServerAsync(name);
+        var id = Regex.Match(showLocation, "[0-9a-fA-F-]{36}").Value;
+
+        // Edit GET -> repository.Get -> MapServerToDto -> View("Form", dto).
+        var edit = await page.GotoAsync($"/mcpservers/edit/{id}");
+        edit!.Status.Should().Be(200);
+
+        // MapServerToDto must round-trip the persisted Name into the form input;
+        // a regression in the projection renders a blank/wrong edit form.
+        var nameValue = await page.InputValueAsync("[name='Name']");
+        nameValue.Should().Be(name);
+    }
+
     private async Task<string> CreateHttpServerAsync(string name)
     {
         var handler = new HttpClientHandler
