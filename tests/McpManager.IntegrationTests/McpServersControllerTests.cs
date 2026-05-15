@@ -151,6 +151,29 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task GetIndex_WithSearchFilter_ReturnsOnlyMatchingServer()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = Guid.NewGuid().ToString("N")[..8];
+        var match = await SeedHttpServerAsync($"match-{token}");
+        var other = await SeedHttpServerAsync($"other-{Guid.NewGuid():N}");
+
+        // Index's `if (!IsNullOrWhiteSpace(filters.Search))` Name/Description
+        // Contains filter (lines 73-76) was never exercised. Searching a token
+        // unique to one server pins the predicate: a regression that drops the
+        // Where (or ANDs Name & Description) would also list the non-match.
+        var response = await client.GetAsync($"/McpServers?Search={token}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(match.Name);
+        body.Should().NotContain(other.Name, "the search filter must exclude non-matching servers");
+    }
+
+    [Fact]
     public async Task PostSync_WithExistingId_RunsSyncAndRedirectsToShow()
     {
         var client = CreateAdminClient();
