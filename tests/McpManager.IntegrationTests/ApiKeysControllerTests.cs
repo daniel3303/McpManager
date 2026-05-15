@@ -211,4 +211,38 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(key.Id);
         reloaded!.Name.Should().Be(newName, "Edit POST must persist the rename");
     }
+
+    [Fact]
+    public async Task GetIndex_WithSearchFilter_ReturnsOnlyMatchingKey()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = Guid.NewGuid().ToString("n")[..8];
+        var otherName = $"other-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            await manager.Create(new ApiKey { Name = $"match-{token}" });
+            await manager.Create(new ApiKey { Name = otherName });
+        }
+
+        // Index (lines 36-54) was uncovered — no test hit the API-keys list
+        // page. The Name Contains filter is the branch worth pinning: a
+        // regression dropping the Where would also list the non-matching key
+        // (leaking unrelated key names into a filtered admin view).
+        var response = await client.GetAsync($"/ApiKeys?Search={token}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain($"match-{token}");
+        body.Should().NotContain(otherName, "the search filter must exclude non-matches");
+    }
 }
