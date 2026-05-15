@@ -115,4 +115,51 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(key.Id);
         reloaded.Should().BeNull("Delete must remove the API key row");
     }
+
+    [Fact]
+    public async Task PostToggleActive_WithActiveKey_DeactivatesItAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        ApiKey key;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            key = await manager.Create(new ApiKey { Name = $"toggle-{Guid.NewGuid():N}" });
+        }
+        key.IsActive.Should().BeTrue("new keys default to active");
+
+        var getResp = await client.GetAsync("/ApiKeys/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // ToggleActive (lines 166-179) was uncovered: found-guard bypass ->
+        // ApiKeyManager.ToggleActive -> flash + redirect to Show. Asserting the
+        // flipped IsActive pins the state mutation (a regression no-op'ing the
+        // toggle would 302 but leave a revoked key still authenticating).
+        var response = await client.PostAsync($"/ApiKeys/ToggleActive/{key.Id}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<ApiKeyRepository>();
+        var reloaded = await repo.Get(key.Id);
+        reloaded!.IsActive.Should().BeFalse("ToggleActive must flip an active key to inactive");
+    }
 }
