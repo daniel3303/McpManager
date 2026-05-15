@@ -85,4 +85,53 @@ public class OpenApiSpecParserTests
             .And.Contain("verbose")
             .And.Contain("note");
     }
+
+    [Fact]
+    public void ParseSpec_BodyWithArrayEnumAndFormat_ConvertsItemsEnumAndFormatIntoSchema()
+    {
+        // ConvertSchemaToJObject's array-items recursion, enum projection, and
+        // format passthrough were uncovered (existing tests use only scalar
+        // params/bodies). A regression there would silently drop type info MCP
+        // clients rely on to build correct tool-call arguments.
+        const string yamlSpec = """
+            openapi: 3.0.0
+            info:
+              title: T
+              version: "1"
+            paths:
+              /widgets:
+                post:
+                  operationId: createWidget
+                  requestBody:
+                    content:
+                      application/json:
+                        schema:
+                          type: object
+                          properties:
+                            tags:
+                              type: array
+                              items:
+                                type: string
+                            status:
+                              type: string
+                              enum:
+                                - active
+                                - inactive
+                            created:
+                              type: string
+                              format: date-time
+                  responses:
+                    '200':
+                      description: OK
+            """;
+
+        var operations = new OpenApiSpecParser().ParseSpec(yamlSpec);
+
+        operations.Should().HaveCount(1);
+        var inputSchema = operations[0].InputSchema;
+        inputSchema.Should().Contain("\"items\"", "array properties keep their item schema");
+        inputSchema.Should().Contain("active").And.Contain("inactive");
+        inputSchema.Should().Contain("\"enum\"");
+        inputSchema.Should().Contain("date-time");
+    }
 }
