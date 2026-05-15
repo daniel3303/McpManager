@@ -1,7 +1,11 @@
 using System.Net;
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Mcp;
+using McpManager.Core.Mcp;
+using McpManager.Core.Repositories.Mcp;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests.Api;
@@ -43,5 +47,55 @@ public class ActivableControllerTests : IClassFixture<WebFactoryFixture>
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain("at least one active user");
+    }
+
+    [Fact]
+    public async Task PostIndex_TogglingActiveMcpServer_DeactivatesItAndReturnsOk()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"act-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+        }
+        server.IsActive.Should().BeTrue("new servers default to active");
+
+        // The no-executor toggle path (lines 53-56, 84, 87-88) was uncovered —
+        // only the User self-deactivation guard had a test. With no registered
+        // IActivableExecutor the controller flips IsActive directly and persists;
+        // a regression skipping SaveChanges would 200 but leave the server active.
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["modelName"] = "McpManager.Core.Data.Models.Mcp.McpServer, McpManager.Core.Data",
+                ["key"] = server.Id.ToString(),
+            }
+        );
+
+        var response = await client.PostAsync("/api/Activable/Index", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync(ct)).Should().Contain("false");
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var reloaded = await repo.Get(server.Id);
+        reloaded!.IsActive.Should().BeFalse("the toggle must persist the deactivation");
     }
 }
