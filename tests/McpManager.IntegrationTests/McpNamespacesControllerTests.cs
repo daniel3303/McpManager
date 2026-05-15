@@ -559,4 +559,91 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(nsToolId);
         reloaded!.IsEnabled.Should().BeFalse("ToggleTool must persist the disabled state");
     }
+
+    [Fact]
+    public async Task PostEditToolOverride_WithNameAndDescription_PersistsOverridesAndReturnsSuccess()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid nsToolId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            var ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "OvrTool",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"ovrtool-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var link = await nsManager.AddServer(ns, server);
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            var tool = tools.Add(
+                new McpTool
+                {
+                    Name = "raw_tool",
+                    McpServerId = server.Id,
+                    InputSchema = "{}",
+                }
+            );
+            await tools.SaveChanges();
+            var nsTools = scope.ServiceProvider.GetRequiredService<McpNamespaceToolRepository>();
+            var nsTool = nsTools.Add(
+                new McpNamespaceTool { McpNamespaceServerId = link.Id, McpToolId = tool.Id }
+            );
+            await nsTools.SaveChanges();
+            nsToolId = nsTool.Id;
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["nsToolId"] = nsToolId.ToString(),
+                ["nameOverride"] = "friendly_name",
+                ["descriptionOverride"] = "friendly description",
+            }
+        );
+
+        // EditToolOverride (lines 302-314) was uncovered: nsTool found-guard ->
+        // NamespaceManager.UpdateToolOverride -> Json success. Asserting the
+        // persisted overrides pins the rename/redescribe a namespace exposes to
+        // MCP clients (a regression would expose the raw tool name instead).
+        var response = await client.PostAsync("/McpNamespaces/EditToolOverride", form, ct);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("\"success\":true");
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<McpNamespaceToolRepository>();
+        var reloaded = await repo.Get(nsToolId);
+        reloaded!.NameOverride.Should().Be("friendly_name");
+        reloaded.DescriptionOverride.Should().Be("friendly description");
+    }
 }
