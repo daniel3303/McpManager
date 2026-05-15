@@ -36,6 +36,31 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task GetExport_WithSeededServer_ReturnsJsonFileContainingServer()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"export-{Guid.NewGuid():N}");
+
+        // Export was fully uncovered: it round-trips the DB through
+        // McpImportExportManager.Export() and returns a File(...). Asserting the
+        // JSON body + content-type + download filename pins the whole response
+        // (a regression in the filename or content-type breaks the browser
+        // "save as" the export UI relies on).
+        var response = await client.GetAsync("/McpServers/Export", ct);
+        response.EnsureSuccessStatusCode();
+
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        response
+            .Content.Headers.ContentDisposition!.FileName.Should()
+            .Be("mcpmanager-servers.json");
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(server.Name);
+    }
+
+    [Fact]
     public async Task GetShow_WithExistingId_LoadsRecentLogsAndRendersServer()
     {
         var client = CreateAdminClient();
