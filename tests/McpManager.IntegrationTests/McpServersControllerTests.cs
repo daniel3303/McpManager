@@ -102,6 +102,36 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostCreate_OpenApiWithoutSpec_CatchesApplicationExceptionAndReRendersForm()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = $"openapi-{Guid.NewGuid():N}",
+                ["TransportType"] = "OpenApi",
+                ["Uri"] = "https://api.example.invalid/",
+            }
+        );
+
+        // ModelState passes (Uri/OpenApiSpecification aren't DTO-required), so
+        // McpServerManager.Create -> ValidateServer throws ApplicationException
+        // "OpenAPI specification is required". Only the catch (lines 141-144)
+        // turns that into a ModelState error + Form re-render; a regression
+        // letting the exception escape would 500 instead of this 200 + message.
+        var response = await client.PostAsync("/McpServers/Create", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        html.Should().Contain("OpenAPI specification is required");
+    }
+
+    [Fact]
     public async Task PostCreate_WithEmptyName_ReturnsTwoHundredFormReRender()
     {
         var client = CreateAdminClient();
