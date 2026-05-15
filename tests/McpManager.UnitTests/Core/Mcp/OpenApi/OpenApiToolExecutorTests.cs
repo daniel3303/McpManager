@@ -160,6 +160,43 @@ public class OpenApiToolExecutorTests
             .Be("acme");
     }
 
+    [Fact]
+    public async Task Execute_BearerAuthWithUpstream500_SetsErrorAndSendsBearerHeader()
+    {
+        HttpRequestMessage seenRequest = null;
+        var sut = new OpenApiToolExecutor(
+            new StubHttpClientFactory(req =>
+            {
+                seenRequest = req;
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    ReasonPhrase = "Internal Server Error",
+                };
+            })
+        );
+
+        var tool = new McpTool
+        {
+            Name = "list",
+            Metadata = "{\"Method\":\"GET\",\"Path\":\"/things\",\"Parameters\":[]}",
+        };
+        var server = new McpServer
+        {
+            Uri = "https://api.example.invalid/",
+            Auth = new Auth { Type = AuthType.Bearer, Token = "tok-xyz" },
+        };
+
+        // Pins ConfigureAuth's Bearer branch and the non-2xx error path together:
+        // a regression that Base64-encodes the bearer token, or that reports
+        // failed calls as Success=true with no Error, would surface here.
+        var result = await sut.Execute(server, tool, new Dictionary<string, object>());
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be("HTTP 500 Internal Server Error");
+        seenRequest!.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        seenRequest.Headers.Authorization!.Parameter.Should().Be("tok-xyz");
+    }
+
     private sealed class StubHttpClientFactory : IHttpClientFactory
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
