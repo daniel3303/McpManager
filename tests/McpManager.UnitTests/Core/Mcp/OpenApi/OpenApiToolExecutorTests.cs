@@ -110,6 +110,56 @@ public class OpenApiToolExecutorTests
         seenBody.Should().NotContain("\"q\"", "query args must not leak into the body");
     }
 
+    [Fact]
+    public async Task Execute_WithBasicAuthAndCustomHeader_SendsAuthorizationAndCustomHeader()
+    {
+        HttpRequestMessage seenRequest = null;
+        var sut = new OpenApiToolExecutor(
+            new StubHttpClientFactory(req =>
+            {
+                seenRequest = req;
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                };
+            })
+        );
+
+        var tool = new McpTool
+        {
+            Name = "list",
+            Metadata = "{\"Method\":\"GET\",\"Path\":\"/things\",\"Parameters\":[]}",
+        };
+        var server = new McpServer
+        {
+            Uri = "https://api.example.invalid/",
+            Auth = new Auth
+            {
+                Type = AuthType.Basic,
+                Username = "alice",
+                Password = "s3cret",
+            },
+            CustomHeaders = { ["X-Tenant"] = "acme" },
+        };
+
+        // ConfigureAuth's Basic branch and ConfigureHeaders were uncovered: a
+        // regression that swaps user/pass, drops UTF8, or skips custom headers
+        // would send the upstream the wrong credentials or omit tenant routing.
+        var result = await sut.Execute(server, tool, new Dictionary<string, object>());
+
+        result.Success.Should().BeTrue($"Execute should succeed: {result.Error}");
+        seenRequest!.Headers.Authorization!.Scheme.Should().Be("Basic");
+        seenRequest
+            .Headers.Authorization!.Parameter.Should()
+            .Be(Convert.ToBase64String(Encoding.UTF8.GetBytes("alice:s3cret")));
+        seenRequest
+            .Headers.GetValues("X-Tenant")
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .Be("acme");
+    }
+
     private sealed class StubHttpClientFactory : IHttpClientFactory
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
