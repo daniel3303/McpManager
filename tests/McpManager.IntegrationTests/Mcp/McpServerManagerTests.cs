@@ -448,6 +448,30 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Command");
     }
 
+    [Fact]
+    public async Task Create_OpenApiWithNonHttpUri_ThrowsApplicationExceptionForUri()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "openapi-ftp",
+                    TransportType = McpTransportType.OpenApi,
+                    Uri = "ftp://example.com/spec",
+                    OpenApiSpecification = "{}",
+                }
+            );
+
+        // ValidateServer's OpenAPI scheme guard (Uri.TryCreate + http/https
+        // check, line 550) was uncovered — prior OpenAPI tests used valid URLs.
+        // A non-HTTP scheme must be rejected before the spec check; collapsing
+        // this guard would let OpenApiToolExecutor build an unusable HttpClient.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Uri");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
