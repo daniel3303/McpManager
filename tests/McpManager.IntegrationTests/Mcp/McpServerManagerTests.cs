@@ -472,6 +472,30 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Uri");
     }
 
+    [Fact]
+    public async Task Create_OpenApiWithBlankUri_ThrowsApplicationExceptionForUri()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "openapi-no-uri",
+                    TransportType = McpTransportType.OpenApi,
+                    Uri = "",
+                    OpenApiSpecification = "{}",
+                }
+            );
+
+        // ValidateServer's OpenAPI blank-Uri guard (line 539) was uncovered —
+        // prior OpenAPI tests always supplied a Uri. It must fire before the
+        // scheme check; collapsing it would persist an OpenAPI server with no
+        // base URL, so every tool call builds a request against an empty host.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Uri");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
