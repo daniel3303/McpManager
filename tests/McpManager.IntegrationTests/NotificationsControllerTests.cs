@@ -335,4 +335,56 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
             .IsRead.Should()
             .BeTrue("ApiMarkAsRead must flip the targeted notification to read");
     }
+
+    [Fact]
+    public async Task PostApiMarkAllAsRead_WithUnreadNotifications_ReturnsOkAndMarksAllRead()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid id1,
+            id2;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            var mgr = sp.GetRequiredService<NotificationManager>();
+            id1 = (await mgr.Create(admin, title: $"all1-{Guid.NewGuid():N}", message: "x")).Id;
+            id2 = (await mgr.Create(admin, title: $"all2-{Guid.NewGuid():N}", message: "y")).Id;
+        }
+
+        var indexResp = await client.GetAsync("/Notifications", ct);
+        indexResp.EnsureSuccessStatusCode();
+        var html = await indexResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // ApiMarkAllAsRead (lines 181-184) was uncovered — it is the bell
+        // dropdown's "mark all" AJAX action returning 200 Ok (not a redirect
+        // like the page-level MarkAllAsRead). A regression scoping it wrong
+        // leaves the badge stuck or clears another user's notifications.
+        var response = await client.PostAsync("/Notifications/ApiMarkAllAsRead", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<NotificationRepository>();
+        (await repo.Get(id1))!.IsRead.Should().BeTrue();
+        (await repo.Get(id2))!.IsRead.Should().BeTrue();
+    }
 }
