@@ -274,4 +274,75 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await users2.FindByIdAsync(userAId.ToString());
         reloaded!.Email.Should().Be(emailA, "the conflicting email change must not persist");
     }
+
+    [Fact]
+    public async Task PostEdit_WithNewPassword_ResetsPasswordAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"pwd-{Guid.NewGuid():N}@example.com";
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var user = new User
+            {
+                GivenName = "Pw",
+                Surname = "User",
+                Email = email,
+                UserName = email,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(user, "OldPassw0rd!")).Succeeded.Should().BeTrue();
+            userId = user.Id;
+        }
+
+        var getResp = await client.GetAsync($"/Users/Edit?id={userId}", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "Pw",
+                ["Surname"] = "User",
+                ["Email"] = email,
+                ["Password"] = "NewPassw0rd!",
+                ["ConfirmPassword"] = "NewPassw0rd!",
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+            }
+        );
+
+        // The dto.Password branch (lines 209-213: GeneratePasswordResetToken +
+        // ResetPasswordAsync) was uncovered — the happy Edit test sends no
+        // password. Asserting the new password authenticates pins the admin
+        // password-reset (a regression skipping ResetPassword would 302 while
+        // leaving the old password active).
+        var response = await client.PostAsync($"/Users/Edit?id={userId}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var users2 = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var reloaded = await users2.FindByIdAsync(userId.ToString());
+        (await users2.CheckPasswordAsync(reloaded!, "NewPassw0rd!"))
+            .Should()
+            .BeTrue("Edit must reset to the new password");
+        (await users2.CheckPasswordAsync(reloaded!, "OldPassw0rd!"))
+            .Should()
+            .BeFalse("the old password must no longer authenticate");
+    }
 }
