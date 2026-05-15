@@ -271,4 +271,36 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
             .Should()
             .BeEquivalentTo("/apikeys", "Index redirect target (URLs are lowercased)");
     }
+
+    [Fact]
+    public async Task GetRevealKey_WithExistingKey_ReturnsSuccessJsonWithFullKey()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        ApiKey created;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            created = await manager.Create(new ApiKey { Name = $"reveal-{Guid.NewGuid():N}" });
+        }
+
+        // RevealKey's found path (lines 157,161-162) was uncovered. The "copy
+        // key" UX depends on it returning the full secret as JSON; a regression
+        // returning Success=false or the masked value would silently break key
+        // retrieval for every operator.
+        var response = await client.GetAsync($"/ApiKeys/RevealKey/{created.Id}", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(created.Key);
+        body.Should().Contain("true");
+    }
 }
