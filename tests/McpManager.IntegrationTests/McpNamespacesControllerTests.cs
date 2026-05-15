@@ -329,4 +329,73 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         body.Should().Contain($"match-{token}");
         body.Should().NotContain("other-", "the search filter must exclude non-matches");
     }
+
+    [Fact]
+    public async Task PostRemoveServer_WithLinkedServer_UnlinksItAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpNamespace ns;
+        Guid nsServerId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "RmSrv",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"rmsrv-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var link = await nsManager.AddServer(ns, server);
+            nsServerId = link.Id;
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // RemoveServer (lines 265-274) was uncovered: nsServer found-guard ->
+        // NamespaceManager.RemoveServer -> redirect to Show. Asserting the join
+        // row is gone pins the unlink (a regression no-op'ing RemoveServer would
+        // 302 but keep the server exposed through the namespace endpoint).
+        var response = await client.PostAsync(
+            $"/McpNamespaces/RemoveServer/{ns.Id}?nsServerId={nsServerId}",
+            form,
+            ct
+        );
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var nsServerRepo =
+            verify.ServiceProvider.GetRequiredService<McpNamespaceServerRepository>();
+        var stillLinked = nsServerRepo.GetByNamespace(ns).Any(s => s.Id == nsServerId);
+        stillLinked.Should().BeFalse("RemoveServer must drop the namespace-server link");
+    }
 }
