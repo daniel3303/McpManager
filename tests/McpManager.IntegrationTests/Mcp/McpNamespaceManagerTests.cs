@@ -118,4 +118,28 @@ public class McpNamespaceManagerTests : IClassFixture<WebFactoryFixture>
         var ex = await act.Should().ThrowAsync<ApplicationException>();
         ex.Which.Property.Should().Be("Slug");
     }
+
+    [Fact]
+    public async Task Create_WithBlankName_ThrowsApplicationExceptionForName()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+
+        // Validate's blank-Name guard (line 174) was uncovered — every prior
+        // test supplied a Name and only exercised the Slug guards. Name is the
+        // human label shown in the namespace picker; persisting a blank one
+        // leaves an unidentifiable namespace operators can't safely manage.
+        var act = async () =>
+            await sut.Create(
+                new McpNamespace
+                {
+                    Name = "",
+                    Slug = $"ns-{Guid.NewGuid():N}",
+                    Description = "",
+                }
+            );
+
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Name");
+    }
 }
