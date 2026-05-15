@@ -469,4 +469,94 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(nsServerId);
         reloaded!.IsActive.Should().BeFalse("ToggleServer must persist the disabled state");
     }
+
+    [Fact]
+    public async Task PostToggleTool_WithLinkedTool_FlipsIsEnabledAndReturnsSuccessJson()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid nsToolId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            var ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "TglTool",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"tgltool-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var link = await nsManager.AddServer(ns, server);
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            var tool = tools.Add(
+                new McpTool
+                {
+                    Name = "do_thing",
+                    McpServerId = server.Id,
+                    InputSchema = "{}",
+                }
+            );
+            await tools.SaveChanges();
+            var nsTools = scope.ServiceProvider.GetRequiredService<McpNamespaceToolRepository>();
+            var nsTool = nsTools.Add(
+                new McpNamespaceTool
+                {
+                    McpNamespaceServerId = link.Id,
+                    McpToolId = tool.Id,
+                    IsEnabled = true,
+                }
+            );
+            await nsTools.SaveChanges();
+            nsToolId = nsTool.Id;
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["nsToolId"] = nsToolId.ToString(),
+                ["isEnabled"] = "false",
+            }
+        );
+
+        // ToggleTool (lines 288-298) was uncovered: nsTool found-guard ->
+        // NamespaceManager.ToggleTool -> Json success. Asserting the flipped
+        // IsEnabled pins the mutation (a no-op'd toggle would still report
+        // success while the tool stays exposed through the namespace).
+        var response = await client.PostAsync("/McpNamespaces/ToggleTool", form, ct);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("\"success\":true");
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<McpNamespaceToolRepository>();
+        var reloaded = await repo.Get(nsToolId);
+        reloaded!.IsEnabled.Should().BeFalse("ToggleTool must persist the disabled state");
+    }
 }
