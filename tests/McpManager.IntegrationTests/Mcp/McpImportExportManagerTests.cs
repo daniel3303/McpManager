@@ -98,4 +98,28 @@ public class McpImportExportManagerTests : IClassFixture<WebFactoryFixture>
         created.Auth.Token.Should().Be("secret123");
         created.CustomHeaders.Should().ContainKey("X-Trace").WhoseValue.Should().Be("on");
     }
+
+    [Fact]
+    public async Task Import_WithJsonArrayFormat_ParsesEachServerObject()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpImportExportManager>();
+        var ct = TestContext.Current.CancellationToken;
+
+        var name = $"arr-{Guid.NewGuid():N}";
+        var json = "[{\"name\":\"" + name + "\",\"url\":\"https://api.example.invalid/mcp\"}]";
+
+        // ParseServers' JArray branch (lines 163-170) was uncovered — every
+        // import test used the Claude-Desktop { mcpServers: {...} } wrapper. The
+        // bare-array form is a documented mcp.json variant; a regression here
+        // would silently import zero servers from a valid array file.
+        var result = await sut.Import(json);
+
+        result.Success.Should().BeTrue();
+        result.Imported.Should().BeGreaterThan(0);
+
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
+        created.Uri.Should().Be("https://api.example.invalid/mcp");
+    }
 }
