@@ -92,4 +92,68 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         created.Should().NotBeNull("Create POST must persist the new user");
         created!.GivenName.Should().Be("Ada");
     }
+
+    [Fact]
+    public async Task PostEdit_WithExistingUserAndValidChange_PersistsAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"edit-{Guid.NewGuid():N}@example.com";
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var user = new User
+            {
+                GivenName = "Before",
+                Surname = "User",
+                Email = email,
+                UserName = email,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(user, "Passw0rd!")).Succeeded.Should().BeTrue();
+            userId = user.Id;
+        }
+
+        var getResp = await client.GetAsync($"/Users/Edit?id={userId}", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "After",
+                ["Surname"] = "User",
+                ["Email"] = email, // unchanged -> skips the email-conflict branch
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+            }
+        );
+
+        // Edit POST happy path: user found + ModelState valid + email unchanged
+        // + no password -> UpdateAsync -> UpdateUserClaims -> 302 to Show. The
+        // ~50-line action was uncovered; asserting the persisted rename pins
+        // that UpdateAsync ran rather than short-circuiting on a guard.
+        var response = await client.PostAsync($"/Users/Edit?id={userId}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var users2 = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var reloaded = await users2.FindByEmailAsync(email);
+        reloaded!.GivenName.Should().Be("After", "Edit POST must persist the new given name");
+    }
 }
