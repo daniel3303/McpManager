@@ -181,4 +181,28 @@ public class McpImportExportManagerTests : IClassFixture<WebFactoryFixture>
         var count = await repo.GetAll().CountAsync(s => s.Name == name, ct);
         count.Should().Be(1);
     }
+
+    [Fact]
+    public async Task Import_WithDirectNameToConfigMap_ImportsEachEntry()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpImportExportManager>();
+        var ct = TestContext.Current.CancellationToken;
+
+        var name = $"direct-{Guid.NewGuid():N}";
+        var json = "{\"" + name + "\":{\"url\":\"https://api.example.invalid/mcp\"}}";
+
+        // ParseServers' final else branch (lines 154-158: no "mcpServers"
+        // wrapper, no top-level "name") was uncovered. This bare
+        // { name: { config } } shape is a real config variant; a regression
+        // here imports zero servers from an otherwise valid file.
+        var result = await sut.Import(json);
+
+        result.Success.Should().BeTrue();
+        result.Imported.Should().BeGreaterThan(0);
+
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
+        created.Uri.Should().Be("https://api.example.invalid/mcp");
+    }
 }
