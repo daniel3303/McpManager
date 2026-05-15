@@ -48,4 +48,17 @@ public class McpProxyHelpersTests
             .WhoseValue.Should()
             .Be(7L);
     }
+
+    [Fact]
+    public void ParseInputSchema_WithMalformedJson_FallsBackToEmptyObjectSchema()
+    {
+        // The catch fallback (lines 32-35: JObject.Parse throws -> return
+        // {"type":"object"}) was uncovered. A stored tool schema can be corrupt;
+        // the proxy must degrade to a permissive empty-object schema, never
+        // throw — otherwise one bad tool breaks the whole aggregated endpoint.
+        var result = McpProxyHelpers.ParseInputSchema("{ this is not valid json");
+
+        result.GetProperty("type").GetString().Should().Be("object");
+        result.EnumerateObject().Select(p => p.Name).Should().Equal("type");
+    }
 }
