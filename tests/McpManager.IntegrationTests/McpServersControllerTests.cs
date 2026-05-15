@@ -368,6 +368,64 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostEditTool_WithCustomDescription_PersistsCustomizationAndReturnsSuccessJson()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"edittool-post-{Guid.NewGuid():N}");
+        McpTool tool;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            tool = tools.Add(
+                new McpTool
+                {
+                    Name = "read_file",
+                    McpServerId = server.Id,
+                    InputSchema = """{"properties":{}}""",
+                }
+            );
+            await tools.SaveChanges();
+        }
+
+        var token = await HarvestAntiforgeryAsync(
+            client,
+            $"/McpServers/EditTool/{server.Id}/{tool.Id}",
+            ct
+        );
+        var custom = $"custom-{Guid.NewGuid():N}";
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["CustomDescription"] = custom,
+            }
+        );
+
+        // EditTool POST was uncovered (lines ~470-483): get tool -> (null ->
+        // NotFound) -> McpServerManager.UpdateToolCustomization -> Json success.
+        // Asserting the persisted CustomDescription pins that the customization
+        // actually wrote through, not just that the action returned 200.
+        var response = await client.PostAsync(
+            $"/McpServers/EditTool/{server.Id}/{tool.Id}",
+            form,
+            ct
+        );
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
+
+        using var verify = _factory.Services.CreateScope();
+        var tools2 = verify.ServiceProvider.GetRequiredService<McpToolRepository>();
+        var reloaded = await tools2.Get(tool.Id);
+        reloaded!.CustomDescription.Should().Be(custom, "EditTool POST must persist the override");
+    }
+
+    [Fact]
     public async Task PostPreviewCommand_NpxMode_ReturnsBuiltNpxCommandPreviewJson()
     {
         var client = CreateAdminClient();
