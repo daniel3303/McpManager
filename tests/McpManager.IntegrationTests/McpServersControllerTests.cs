@@ -151,6 +151,32 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostSync_WithExistingId_RunsSyncAndRedirectsToShow()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"sync-{Guid.NewGuid():N}");
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // Sync POST was fully uncovered (lines 341-365): server found ->
+        // McpServerManager.SyncTools (fails on the invalid upstream -> Error
+        // branch) -> 302 to Show. Asserting the redirect target carries the id
+        // pins both the not-found-bypass and the RedirectToAction(Show,{id}).
+        var response = await client.PostAsync($"/McpServers/Sync/{server.Id}", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+        response
+            .Headers.Location!.ToString()
+            .Should()
+            .EndWithEquivalentOf($"/mcpservers/show/{server.Id}");
+    }
+
+    [Fact]
     public async Task GetEdit_WithExistingId_RendersFormPrefilledWithServerName()
     {
         var client = CreateAdminClient();
