@@ -64,6 +64,52 @@ public class OpenApiToolExecutorTests
         seenRequest.RequestUri!.AbsoluteUri.Should().Be("https://api.example.invalid/things");
     }
 
+    [Fact]
+    public async Task Execute_PostWithPathQueryAndBodyArgs_BuildsResolvedUrlAndJsonBody()
+    {
+        HttpRequestMessage seenRequest = null;
+        string seenBody = null;
+        var sut = new OpenApiToolExecutor(
+            new StubHttpClientFactory(req =>
+            {
+                seenRequest = req;
+                seenBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                };
+            })
+        );
+
+        var metadata =
+            "{\"Method\":\"POST\",\"Path\":\"/items/{id}\",\"Parameters\":["
+            + "{\"Name\":\"id\",\"In\":\"path\"},{\"Name\":\"q\",\"In\":\"query\"}]}";
+        var tool = new McpTool { Name = "create", Metadata = metadata };
+        var server = new McpServer { Uri = "https://api.example.invalid/", Auth = new Auth() };
+        var args = new Dictionary<string, object>
+        {
+            ["id"] = 7,
+            ["q"] = "a b",
+            ["note"] = "hello",
+        };
+
+        // The request-building helpers were uncovered: ResolvePathParameters
+        // ({id}->escaped value), BuildQueryString (?q=a%20b), and
+        // BuildRequestBody (non-path/query args -> JSON). A regression in path
+        // substitution or arg classification sends the upstream a wrong URL or
+        // leaks the path/query value into the body.
+        var result = await sut.Execute(server, tool, args);
+
+        result.Success.Should().BeTrue($"Execute should succeed: {result.Error}");
+        seenRequest!.Method.Should().Be(HttpMethod.Post);
+        seenRequest
+            .RequestUri!.AbsoluteUri.Should()
+            .Be("https://api.example.invalid/items/7?q=a%20b");
+        seenBody.Should().Contain("\"note\":\"hello\"");
+        seenBody.Should().NotContain("\"id\"", "path args must not leak into the body");
+        seenBody.Should().NotContain("\"q\"", "query args must not leak into the body");
+    }
+
     private sealed class StubHttpClientFactory : IHttpClientFactory
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
