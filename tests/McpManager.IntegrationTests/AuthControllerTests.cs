@@ -54,4 +54,32 @@ public class AuthControllerTests : IClassFixture<WebFactoryFixture>
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain("Invalid credentials or inactive account.");
     }
+
+    [Fact]
+    public async Task GetLogout_WhenAuthenticated_SignsOutAndRedirectsHome()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        // Logout (lines 62-66) was uncovered: SignOutAsync + SignOut with a
+        // RedirectUri to Home. After it, the auth cookie must be cleared so a
+        // follow-up request to a protected page bounces to the login page — a
+        // regression leaving the cookie alive would keep a "logged out" user in.
+        var logoutResp = await client.GetAsync("/Auth/Logout", ct);
+        logoutResp.StatusCode.Should().Be(HttpStatusCode.Redirect);
+
+        var afterLogout = await client.GetAsync("/Home", ct);
+        afterLogout.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        afterLogout
+            .Headers.Location!.ToString()
+            .Should()
+            .ContainEquivalentOf("/auth/login", "a signed-out session must be bounced to login");
+    }
 }
