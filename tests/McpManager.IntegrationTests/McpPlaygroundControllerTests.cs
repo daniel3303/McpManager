@@ -202,4 +202,32 @@ public class McpPlaygroundControllerTests : IClassFixture<WebFactoryFixture>
             .Should()
             .Contain(name);
     }
+
+    [Fact]
+    public async Task PostExecute_WithUnknownServerId_ReturnsNotFound()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var json = new StringContent(
+            "{\"serverId\":\"" + Guid.NewGuid() + "\",\"toolName\":\"whatever\",\"arguments\":{}}",
+            System.Text.Encoding.UTF8,
+            "application/json"
+        );
+
+        // Execute's server-not-found guard (lines 93-96) was uncovered. The
+        // playground JS posts a tool call; a stale/unknown serverId must yield
+        // a clean 404 the UI surfaces as an error, never a 500 (unhandled null)
+        // or a 200 that then NREs inside CallTool.
+        var response = await client.PostAsync("/McpPlayground/Execute", json, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
