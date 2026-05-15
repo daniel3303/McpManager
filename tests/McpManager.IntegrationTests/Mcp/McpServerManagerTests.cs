@@ -343,6 +343,35 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         result.ToolsRemoved.Should().BeGreaterThan(0, "beta was dropped from the spec");
     }
 
+    [Fact]
+    public async Task Create_HttpWithApiKeyAuthAndNoKeyName_ThrowsApplicationExceptionForApiKeyName()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "apikey-no-name",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://example.invalid/mcp",
+                    Auth = new Auth
+                    {
+                        Type = AuthType.ApiKey,
+                        ApiKeyName = "",
+                        ApiKeyValue = "v",
+                    },
+                }
+            );
+
+        // ValidateServer's Auth switch (case ApiKey, first guard) was
+        // uncovered: an HTTP server using ApiKey auth must reject a blank key
+        // name before persistence. A regression collapsing it would let a
+        // nameless ApiKey server through and send credential-less requests.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Auth.ApiKeyName");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
