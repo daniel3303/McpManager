@@ -197,6 +197,59 @@ public class OpenApiToolExecutorTests
         seenRequest.Headers.Authorization!.Parameter.Should().Be("tok-xyz");
     }
 
+    [Fact]
+    public async Task Execute_PostWithApiKeyAuthAndObjectBody_SendsApiKeyHeaderAndSerializedBody()
+    {
+        HttpRequestMessage seenRequest = null;
+        string seenBody = null;
+        var sut = new OpenApiToolExecutor(
+            new StubHttpClientFactory(req =>
+            {
+                seenRequest = req;
+                seenBody = req.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+                };
+            })
+        );
+
+        var tool = new McpTool
+        {
+            Name = "create",
+            Metadata = "{\"Method\":\"POST\",\"Path\":\"/items\",\"Parameters\":[]}",
+        };
+        var server = new McpServer
+        {
+            Uri = "https://api.example.invalid/",
+            Auth = new Auth
+            {
+                Type = AuthType.ApiKey,
+                ApiKeyName = "X-Api-Key",
+                ApiKeyValue = "key-42",
+            },
+        };
+        var args = new Dictionary<string, object>
+        {
+            ["body"] = new Dictionary<string, object> { ["x"] = 1 },
+        };
+
+        // Pins ConfigureAuth's ApiKey branch and BuildRequestBody's non-string
+        // path: a dictionary "body" arg must be JSON-serialized (not ToString'd)
+        // and the API key must travel as its named header, not Authorization.
+        var result = await sut.Execute(server, tool, args);
+
+        result.Success.Should().BeTrue($"Execute should succeed: {result.Error}");
+        seenRequest!.Headers.Authorization.Should().BeNull();
+        seenRequest
+            .Headers.GetValues("X-Api-Key")
+            .Should()
+            .ContainSingle()
+            .Which.Should()
+            .Be("key-42");
+        seenBody.Should().Be("{\"x\":1}");
+    }
+
     private sealed class StubHttpClientFactory : IHttpClientFactory
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
