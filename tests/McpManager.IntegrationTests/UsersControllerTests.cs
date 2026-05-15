@@ -572,4 +572,30 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var claims = await users2.GetClaimsAsync(reloaded!);
         claims.Should().NotContain(c => c.Type == "Users", "the de-selected claim must be revoked");
     }
+
+    [Fact]
+    public async Task GetShow_WithUnknownId_RedirectsToIndexWithError()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        // Show's not-found branch (lines 68-69) was uncovered. A stale
+        // /Users/Show?id=... link (deleted user) must flash an error and
+        // redirect to Index, never 404/500 — a regression dropping the null
+        // guard would surface a raw error to an admin clicking an old link.
+        var response = await client.GetAsync($"/Users/Show?id={Guid.NewGuid()}", ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response
+            .Headers.Location!.ToString()
+            .Should()
+            .BeEquivalentTo("/users", "Index redirect target (URLs are lowercased)");
+    }
 }
