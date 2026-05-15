@@ -154,4 +154,31 @@ public class McpImportExportManagerTests : IClassFixture<WebFactoryFixture>
         created.Auth.Username.Should().Be("alice");
         created.Auth.Password.Should().Be("s3cret");
     }
+
+    [Fact]
+    public async Task Import_WhenServerNameAlreadyExists_SkipsWithoutDuplicating()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpImportExportManager>();
+        var ct = TestContext.Current.CancellationToken;
+
+        var name = $"dup-{Guid.NewGuid():N}";
+        var json =
+            "{\"mcpServers\":{\"" + name + "\":{\"url\":\"https://api.example.invalid/mcp\"}}}";
+
+        // The existing-server skip branch (result.Skipped++, lines 58-60) was
+        // uncovered — every import test used a fresh name. Re-importing the same
+        // config must be idempotent; a regression here would create duplicate
+        // servers (or throw) on a repeated import of an mcp.json file.
+        await sut.Import(json);
+        var second = await sut.Import(json);
+
+        second.Skipped.Should().Be(1);
+        second.Imported.Should().Be(0);
+        second.Messages.Should().ContainSingle(m => m.Contains("already exists"));
+
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var count = await repo.GetAll().CountAsync(s => s.Name == name, ct);
+        count.Should().Be(1);
+    }
 }
