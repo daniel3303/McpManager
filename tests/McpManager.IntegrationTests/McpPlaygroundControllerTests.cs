@@ -1,7 +1,12 @@
 using System.Net;
+using AngleSharp;
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Mcp;
+using McpManager.Core.Mcp;
+using McpManager.Core.Repositories.Mcp;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests;
@@ -33,5 +38,72 @@ public class McpPlaygroundControllerTests : IClassFixture<WebFactoryFixture>
         var response = await client.GetAsync($"/McpPlayground/GetTools/{Guid.NewGuid()}", ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetGetToolForm_WithEnumAndNumericSchema_RendersParsedFields()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpTool tool;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"pg-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            tool = tools.Add(
+                new McpTool
+                {
+                    Name = "query",
+                    McpServerId = server.Id,
+                    InputSchema = """
+                    {"type":"object","required":["mode"],"properties":{
+                      "mode":{"type":"string","description":"the mode","enum":["fast","slow"]},
+                      "count":{"type":"integer","description":"how many","default":3,"minimum":1,"maximum":10}}}
+                    """,
+                }
+            );
+            await tools.SaveChanges();
+        }
+
+        // GetToolForm -> ParseToolSchema was the whole 0%-covered hot path:
+        // JObject parse, required JArray, properties loop, enum + numeric +
+        // default + min/max branches. Asserting the rendered enum <select> and
+        // numeric <input> pins that the schema parse maps both field shapes
+        // (a regression in the enum/required handling renders the wrong control).
+        var response = await client.GetAsync($"/McpPlayground/GetToolForm?toolId={tool.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+
+        var modeSelect = document.QuerySelector("select[name='mode']");
+        modeSelect.Should().NotBeNull("the string+enum property must render as a <select>");
+        modeSelect!
+            .QuerySelectorAll("option")
+            .Select(o => o.GetAttribute("value"))
+            .Should()
+            .Contain(["fast", "slow"]);
+        document
+            .QuerySelector("input[name='count'][type='number']")
+            .Should()
+            .NotBeNull("the integer property must render as a numeric input");
     }
 }
