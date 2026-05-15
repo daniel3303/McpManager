@@ -1,8 +1,12 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 
-# Install Node.js + npm in runtime for local MCP servers (npx)
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+# Install Node.js 22 + npm via NodeSource for local MCP servers (npx).
+# The Debian apt default is Node 18, which is too old for Vite 8 / Tailwind 4
+# in the build stage; using NodeSource keeps both stages on the same major.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Data volume for SQLite + logs
@@ -12,8 +16,11 @@ VOLUME /app/data
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Node.js for frontend build
-RUN apt-get update && apt-get install -y nodejs npm
+# Node.js 22 for the frontend build (Vite 8 / Tailwind 4 require >=20).
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . /src/
 WORKDIR /src/src/McpManager.Web.Portal
