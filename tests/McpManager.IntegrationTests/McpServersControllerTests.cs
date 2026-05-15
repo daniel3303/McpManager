@@ -452,6 +452,32 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostFetchOpenApiSpec_WithMalformedUrl_ReturnsErrorJson()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token, ["url"] = "not a valid url" }
+        );
+
+        // FetchOpenApiSpec was uncovered (lines 516-534): non-empty url ->
+        // HttpClient.GetStringAsync throws on the malformed URI -> catch ->
+        // Json { success=false, error }. Malformed (not just unreachable) keeps
+        // it instant and network-free; a regression that lets the exception
+        // escape the try would surface here as a 500 instead of the JSON.
+        var response = await client.PostAsync("/McpServers/FetchOpenApiSpec", form, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("success").GetBoolean().Should().BeFalse();
+        doc.RootElement.GetProperty("error").GetString().Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
     public async Task PostPreviewCommand_NpxMode_ReturnsBuiltNpxCommandPreviewJson()
     {
         var client = CreateAdminClient();
