@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using AngleSharp;
 using AwesomeAssertions;
 using McpManager.Core.Data.Models.Identity;
@@ -500,5 +501,75 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain(matchEmail);
         body.Should().NotContain(otherEmail, "the search filter must exclude non-matches");
+    }
+
+    [Fact]
+    public async Task PostEdit_DeselectingAGrantedClaim_RemovesItFromTheUser()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"declaim-{Guid.NewGuid():N}@example.com";
+        Guid userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var user = new User
+            {
+                GivenName = "Claimed",
+                Surname = "User",
+                Email = email,
+                UserName = email,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(user, "Passw0rd!")).Succeeded.Should().BeTrue();
+            (await users.AddClaimAsync(user, new Claim("Users", "Users")))
+                .Succeeded.Should()
+                .BeTrue();
+            userId = user.Id;
+        }
+
+        var getResp = await client.GetAsync($"/Users/Edit?id={userId}", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "Claimed",
+                ["Surname"] = "User",
+                ["Email"] = email, // unchanged -> skips email-conflict + no password
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+                ["Claims[0].Type"] = "Users",
+                ["Claims[0].IsSelected"] = "false", // de-select the granted claim
+            }
+        );
+
+        // UpdateUserClaims' remove-claim loop (lines 264-269) was uncovered —
+        // #139 only covered the add path. De-selecting a granted claim must
+        // actually RemoveClaimAsync; a regression in the diff would leave a
+        // revoked permission silently attached — a security-relevant failure.
+        var response = await client.PostAsync($"/Users/Edit?id={userId}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var users2 = verify.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var reloaded = await users2.FindByEmailAsync(email);
+        var claims = await users2.GetClaimsAsync(reloaded!);
+        claims.Should().NotContain(c => c.Type == "Users", "the de-selected claim must be revoked");
     }
 }
