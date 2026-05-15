@@ -83,4 +83,40 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(notificationId);
         reloaded!.IsRead.Should().BeTrue("Show must mark an unread notification as read");
     }
+
+    [Fact]
+    public async Task GetRecent_AsAuthenticatedAdmin_ReturnsRecentNotificationsJson()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var title = $"recent-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            await sp.GetRequiredService<NotificationManager>()
+                .Create(admin, title: title, message: "body");
+        }
+
+        // Recent (lines 138-157) was uncovered: GetByUser + OrderByDescending +
+        // Take(5) + the anonymous projection -> Ok. It is the bell-dropdown's
+        // data source; a regression in the projection or ordering surfaces as
+        // an empty/garbled dropdown while the page still loads.
+        var response = await client.GetAsync("/Notifications/Recent", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(title);
+    }
 }
