@@ -279,4 +279,60 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
             .IsRead.Should()
             .BeTrue("MarkAsRead must flip the targeted notification to read");
     }
+
+    [Fact]
+    public async Task PostApiMarkAsRead_WithUnreadNotification_ReturnsOkAndMarksRead()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid notificationId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            var created = await sp.GetRequiredService<NotificationManager>()
+                .Create(admin, title: $"api-{Guid.NewGuid():N}", message: "x");
+            notificationId = created.Id;
+        }
+
+        var indexResp = await client.GetAsync("/Notifications", ct);
+        indexResp.EnsureSuccessStatusCode();
+        var html = await indexResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // ApiMarkAsRead's found path (lines 163-166,173-174) was uncovered — it
+        // is the bell-dropdown's per-item AJAX action returning 200 Ok (not a
+        // redirect). A regression in the GetByUser scoping or the side effect
+        // leaves the badge stuck after the user clicks a single notification.
+        var response = await client.PostAsync(
+            $"/Notifications/ApiMarkAsRead?id={notificationId}",
+            form,
+            ct
+        );
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<NotificationRepository>();
+        (await repo.Get(notificationId))!
+            .IsRead.Should()
+            .BeTrue("ApiMarkAsRead must flip the targeted notification to read");
+    }
 }
