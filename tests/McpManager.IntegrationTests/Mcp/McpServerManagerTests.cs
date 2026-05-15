@@ -372,6 +372,35 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Auth.ApiKeyName");
     }
 
+    [Fact]
+    public async Task Create_HttpWithApiKeyAuthNameButNoValue_ThrowsApplicationExceptionForApiKeyValue()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "apikey-no-value",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://example.invalid/mcp",
+                    Auth = new Auth
+                    {
+                        Type = AuthType.ApiKey,
+                        ApiKeyName = "X-Api-Key",
+                        ApiKeyValue = "",
+                    },
+                }
+            );
+
+        // ValidateServer's ApiKey second guard (name present, value blank) was
+        // uncovered (#124 pinned the name guard). A regression collapsing it
+        // would persist a server that sends an empty API-key header and silently
+        // 401s every proxied request.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Auth.ApiKeyValue");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
