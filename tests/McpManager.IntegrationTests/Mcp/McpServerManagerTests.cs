@@ -165,6 +165,54 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Auth.Token");
     }
 
+    [Fact]
+    public async Task ApplyToolCustomizations_WithChangedDescription_PersistsCustomDescription()
+    {
+        Guid serverId;
+        Guid toolId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"apply-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            serverId = server.Id;
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            var tool = tools.Add(
+                new McpTool
+                {
+                    Name = "do_thing",
+                    Description = "original desc",
+                    McpServerId = server.Id,
+                    InputSchema = "{}",
+                }
+            );
+            await tools.SaveChanges();
+            toolId = tool.Id;
+
+            await manager.ApplyToolCustomizations(
+                server,
+                [("do_thing", "original desc", "a better description")]
+            );
+        }
+
+        // ApplyToolCustomizations' change path was uncovered: skip-empty/unchanged
+        // guard is bypassed, the tool is resolved by name, CustomDescription is
+        // trimmed-assigned and SaveChanges fires only when hasChanges. Asserting
+        // the persisted value pins the whole write path (a regression that drops
+        // the hasChanges flag would silently not save).
+        using var verify = _factory.Services.CreateScope();
+        var toolRepo = verify.ServiceProvider.GetRequiredService<McpToolRepository>();
+        var reloaded = await toolRepo.Get(toolId);
+        reloaded!.CustomDescription.Should().Be("a better description");
+        reloaded.McpServerId.Should().Be(serverId);
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
