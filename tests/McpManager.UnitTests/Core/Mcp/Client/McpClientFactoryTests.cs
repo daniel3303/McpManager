@@ -40,6 +40,31 @@ public class McpClientFactoryTests
         auth.Parameter.Should().Be(Convert.ToBase64String(Encoding.UTF8.GetBytes("alice:s3cret")));
     }
 
+    // Pins the Bearer-auth branch in ConfigureHttpClient: scheme "Bearer" and the
+    // raw token as the parameter (no Base64, no transformation). Catches a regression
+    // that Base64-encodes the token like Basic, or emits the wrong scheme.
+    [Fact]
+    public async Task Create_HttpServerWithBearerAuth_SetsBearerTokenAuthorizationHeader()
+    {
+        var factoryStub = new CapturingHttpClientFactory();
+        var sut = new McpClientFactory(factoryStub);
+        var server = new McpServer
+        {
+            Name = "bearer-auth-server",
+            TransportType = McpTransportType.Http,
+            Uri = "http://localhost:1/mcp",
+            Auth = new Auth { Type = AuthType.Bearer, Token = "tok-abc-123" },
+        };
+
+        var act = async () => await sut.Create(server);
+
+        await act.Should().ThrowAsync<Exception>();
+        var auth = factoryStub.Created.DefaultRequestHeaders.Authorization;
+        auth.Should().NotBeNull();
+        auth!.Scheme.Should().Be("Bearer");
+        auth.Parameter.Should().Be("tok-abc-123");
+    }
+
     private sealed class CapturingHttpClientFactory : IHttpClientFactory
     {
         public HttpClient Created { get; private set; }
