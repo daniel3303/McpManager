@@ -169,4 +169,71 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         body.Should().Contain($"/mcp/ns/{slug}");
         body.Should().Contain("Showcase");
     }
+
+    [Fact]
+    public async Task PostAddServer_WithExistingNamespaceAndServer_LinksServerAndRedirectsToShow()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpNamespace ns;
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "AddSrv",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"addsrv-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // AddServer (lines 248-261) was uncovered: both not-found guards, the
+        // NamespaceManager.AddServer link, and the redirect. Asserting the
+        // persisted join row pins the link side effect — a regression that
+        // skips AddServer would 302 but leave the namespace empty.
+        var response = await client.PostAsync(
+            $"/McpNamespaces/AddServer/{ns.Id}?serverId={server.Id}",
+            form,
+            ct
+        );
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var nsServerRepo =
+            verify.ServiceProvider.GetRequiredService<McpNamespaceServerRepository>();
+        var linked = nsServerRepo.GetByNamespace(ns).Any(s => s.McpServerId == server.Id);
+        linked.Should().BeTrue("AddServer must persist the namespace-server link");
+    }
 }
