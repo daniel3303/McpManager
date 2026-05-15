@@ -173,6 +173,52 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostPreviewOpenApiTools_WithValidSpec_ReturnsParsedToolsJson()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        const string yamlSpec = """
+            openapi: 3.0.0
+            info:
+              title: Test API
+              version: "1"
+            paths:
+              /things:
+                get:
+                  operationId: listThings
+                  summary: List things
+                  responses:
+                    '200':
+                      description: OK
+            """;
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["openApiSpecification"] = yamlSpec,
+            }
+        );
+
+        // PreviewOpenApiTools is the only caller-facing path that runs
+        // OpenApiSpecParser.ParseSpec from the controller and projects the
+        // operations to JSON (lines ~494-498, all uncovered). A regression in
+        // the success-shape (e.g. wrong property casing or losing operationId)
+        // surfaces directly in the returned tools array.
+        var response = await client.PostAsync("/McpServers/PreviewOpenApiTools", form, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("success").GetBoolean().Should().BeTrue();
+        var tools = doc.RootElement.GetProperty("tools");
+        tools.GetArrayLength().Should().Be(1);
+        tools[0].GetProperty("name").GetString().Should().Be("listThings");
+    }
+
+    [Fact]
     public async Task PostEdit_WithExistingIdAndValidChange_PersistsAndRedirectsToShow()
     {
         var client = CreateAdminClient();
