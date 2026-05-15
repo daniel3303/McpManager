@@ -240,6 +240,44 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         server.LastError.Should().NotBeNullOrEmpty("CheckHealth must record the failure reason");
     }
 
+    [Fact]
+    public async Task SyncTools_OpenApiServer_ParsesSpecAndAddsTools()
+    {
+        var sut = ResolveServerManager();
+        var server = await sut.Create(
+            new McpServer
+            {
+                Name = $"openapi-sync-{Guid.NewGuid():N}",
+                TransportType = McpTransportType.OpenApi,
+                Uri = "https://api.example.invalid/",
+                OpenApiSpecification = """
+                openapi: 3.0.0
+                info:
+                  title: Test API
+                  version: "1"
+                paths:
+                  /things:
+                    get:
+                      operationId: listThings
+                      summary: List things
+                      responses:
+                        '200':
+                          description: OK
+                """,
+            }
+        );
+
+        // SyncTools' OpenApi branch (lines 154-163) was uncovered: it parses
+        // the spec locally (no upstream) into ToolSyncEntry -> MergeTools. The
+        // Http/Stdio path needs a live server and only its catch was hit. A
+        // regression dropping the OpenApi branch syncs zero tools for every
+        // OpenAPI server while still reporting success.
+        var result = await sut.SyncTools(server);
+
+        result.Success.Should().BeTrue();
+        result.ToolsAdded.Should().BeGreaterThan(0, "the spec defines one operation");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
