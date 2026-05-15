@@ -453,6 +453,37 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostEdit_ChangedToOpenApiWithoutSpec_CatchesApplicationExceptionAndReRenders()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"edit-appex-{Guid.NewGuid():N}");
+        var token = await HarvestAntiforgeryAsync(client, $"/McpServers/Edit/{server.Id}", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = server.Name,
+                ["TransportType"] = "OpenApi",
+                ["Uri"] = "https://api.example.invalid/",
+            }
+        );
+
+        // ModelState passes, so Update -> ValidateServer throws
+        // ApplicationException "OpenAPI specification is required". Only the
+        // Edit-POST catch (lines 217-220) turns that into a ModelState error +
+        // Form re-render; a regression letting it escape would 500 instead of
+        // this 200 + message. Distinct from the Create catch (#107).
+        var response = await client.PostAsync($"/McpServers/Edit/{server.Id}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        html.Should().Contain("OpenAPI specification is required");
+    }
+
+    [Fact]
     public async Task PostEdit_WithExistingIdAndValidChange_PersistsAndRedirectsToShow()
     {
         var client = CreateAdminClient();
