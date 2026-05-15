@@ -6,7 +6,7 @@ namespace McpManager.UnitTests.Core.Mcp.OpenApi;
 
 public class OpenApiSpecParserTests
 {
-    [Fact(Skip = "GH-60 — YAML fallback throws 'Format yaml is not supported'")]
+    [Fact]
     public void ParseSpec_WithMinimalValidYamlSpec_ReturnsOperationNamedFromOperationId()
     {
         // ParseSpec tries JSON first then falls back to YAML, and prefers

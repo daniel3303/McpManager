@@ -11,14 +11,27 @@ namespace McpManager.Core.Mcp.OpenApi;
 [Service]
 public class OpenApiSpecParser
 {
+    // The YAML reader is not registered by default in Microsoft.OpenApi 3.x;
+    // without an explicit OpenApiReaderSettings.AddYamlReader() call the
+    // Parse(content, "yaml") overload throws NotSupportedException. Build a
+    // single settings instance once and reuse it for every parse.
+    private static readonly OpenApiReaderSettings ReaderSettings = CreateReaderSettingsWithYaml();
+
+    private static OpenApiReaderSettings CreateReaderSettingsWithYaml()
+    {
+        var settings = new OpenApiReaderSettings();
+        settings.AddYamlReader();
+        return settings;
+    }
+
     public List<ParsedOperation> ParseSpec(string specContent)
     {
-        var result = OpenApiModelFactory.Parse(specContent, "json");
+        var result = OpenApiModelFactory.Parse(specContent, "json", ReaderSettings);
 
         // If JSON parsing produced no paths, try YAML
         if (result.Document?.Paths == null || !result.Document.Paths.Any())
         {
-            result = OpenApiModelFactory.Parse(specContent, "yaml");
+            result = OpenApiModelFactory.Parse(specContent, "yaml", ReaderSettings);
         }
 
         if (result.Document?.Paths == null)
