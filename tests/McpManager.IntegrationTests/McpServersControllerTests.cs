@@ -173,6 +173,58 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task GetEditTool_WithSchemaAndCustomSchema_RendersArgumentWithMergedDescriptions()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"edittool-{Guid.NewGuid():N}");
+        McpTool tool;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var tools = scope.ServiceProvider.GetRequiredService<McpToolRepository>();
+            tool = tools.Add(
+                new McpTool
+                {
+                    Name = "read_file",
+                    McpServerId = server.Id,
+                    InputSchema = """{"properties":{"path":{"description":"The file path"}}}""",
+                    CustomInputSchema =
+                        """{"properties":{"path":{"description":"Custom path desc"}}}""",
+                }
+            );
+            await tools.SaveChanges();
+        }
+
+        // EditTool GET is the only path that runs the JObject schema parse +
+        // custom-schema merge + properties loop (controller lines ~433-453).
+        // Asserting on the rendered hidden Name and the CustomDescription input
+        // value pins that the original schema yields the arg name and the
+        // custom schema overrides its description — a regression in the merge
+        // (e.g. reading description off the wrong JObject) flips these.
+        var response = await client.GetAsync($"/McpServers/EditTool/{server.Id}/{tool.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+
+        document
+            .QuerySelector("input[name='Arguments[0].Name']")!
+            .GetAttribute("value")
+            .Should()
+            .Be("path");
+        document
+            .QuerySelector("input[name='Arguments[0].CustomDescription']")!
+            .GetAttribute("value")
+            .Should()
+            .Be("Custom path desc");
+        html.Should().Contain("The file path");
+    }
+
+    [Fact]
     public async Task PostPreviewCommand_NpxMode_ReturnsBuiltNpxCommandPreviewJson()
     {
         var client = CreateAdminClient();
