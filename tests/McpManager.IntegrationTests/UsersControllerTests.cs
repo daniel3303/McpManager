@@ -345,4 +345,64 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
             .Should()
             .BeFalse("the old password must no longer authenticate");
     }
+
+    [Fact]
+    public async Task PostCreate_WithExistingEmail_ReRendersWithConflictError()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var email = $"dupe-{Guid.NewGuid():N}@example.com";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            var existing = new User
+            {
+                GivenName = "Existing",
+                Surname = "User",
+                Email = email,
+                UserName = email,
+                IsActive = true,
+                EmailConfirmed = true,
+            };
+            (await users.CreateAsync(existing, "Passw0rd!")).Succeeded.Should().BeTrue();
+        }
+
+        var getResp = await client.GetAsync("/Users/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var doc = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = doc.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["GivenName"] = "Dupe",
+                ["Surname"] = "User",
+                ["Email"] = email, // collides with the seeded user
+                ["Password"] = "Passw0rd!",
+                ["ConfirmPassword"] = "Passw0rd!",
+                ["IsActive"] = "true",
+                ["EmailConfirmed"] = "true",
+            }
+        );
+
+        // Create POST's duplicate-email guard (lines 102-106: FindByEmailAsync
+        // != null -> ModelState error + re-render) was uncovered — the happy
+        // test always used a fresh email. A regression dropping it would create
+        // a second account on an existing email and 200/302 silently.
+        var response = await client.PostAsync("/Users/Create", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("A user with this email already exists.");
+    }
 }
