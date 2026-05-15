@@ -303,4 +303,39 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
         body.Should().Contain(created.Key);
         body.Should().Contain("true");
     }
+
+    [Fact]
+    public async Task GetEdit_WithExistingKey_RendersEditFormPrefilledWithCurrentName()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var name = $"edit-{Guid.NewGuid():N}";
+        ApiKey created;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            created = await manager.Create(new ApiKey { Name = name });
+        }
+
+        // The Edit GET found path (lines 112,116-118) was uncovered. The rename
+        // dialog must open prefilled with the current name; a regression in the
+        // dto projection would render a blank form, so a user saving it would
+        // silently wipe the key's name.
+        var response = await client.GetAsync($"/ApiKeys/Edit/{created.Id}", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        document.QuerySelector("input[name='Name']")!.GetAttribute("value").Should().Be(name);
+    }
 }
