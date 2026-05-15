@@ -1,4 +1,5 @@
 using System.Net;
+using AngleSharp;
 using AwesomeAssertions;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,15 +16,8 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     [Fact]
     public async Task GetShow_WithUnknownId_RedirectsToIndex()
     {
-        var client = _factory.CreateClient(
-            new WebApplicationFactoryClientOptions
-            {
-                AllowAutoRedirect = false,
-                HandleCookies = true,
-            }
-        );
+        var client = CreateAdminClient();
         var ct = TestContext.Current.CancellationToken;
-
         await _factory.SignInAsAdminAsync(client, ct);
 
         // Random guid that cannot exist in the seeded DB — exercises the
@@ -33,5 +27,110 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
 
         response.StatusCode.Should().Be(HttpStatusCode.Found);
         response.Headers.Location!.ToString().Should().EndWithEquivalentOf("/mcpservers");
+    }
+
+    [Fact]
+    public async Task PostDelete_WithUnknownId_RedirectsToIndex()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // Not-found branch on Delete: server == null -> flash error + redirect.
+        // Distinct from GET Show's not-found branch because this is a POST with
+        // antiforgery, exercising the route binding + token validation as well.
+        var response = await client.PostAsync($"/McpServers/Delete/{Guid.NewGuid()}", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+        response.Headers.Location!.ToString().Should().EndWithEquivalentOf("/mcpservers");
+    }
+
+    [Fact]
+    public async Task PostCreate_WithEmptyName_ReturnsTwoHundredFormReRender()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = "",
+                ["TransportType"] = "Http",
+                ["Uri"] = "https://example.invalid/",
+            }
+        );
+
+        // ModelState fails on the [Required] Name -> action returns View("Form", dto).
+        // A regression that promoted ModelState errors past the gate (and into
+        // McpServerManager.Create with an empty name) would surface as a 5xx or
+        // an unintended persist.
+        var response = await client.PostAsync("/McpServers/Create", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task PostAddHeader_AppendsRowAndReturnsCustomHeadersPartialView()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = "any",
+                ["CustomHeaders[0].Key"] = "X-Test",
+                ["CustomHeaders[0].Value"] = "1",
+            }
+        );
+
+        // AddHeader is a pure view-manipulation endpoint (no DB) that returns
+        // PartialView("_CustomHeadersForm", dto) with one extra empty row. A
+        // regression that breaks the partial-view rendering or the route would
+        // surface as a 500 or a missing input on the returned HTML.
+        var response = await client.PostAsync("/McpServers/AddHeader", form, ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var keyInputs = document.QuerySelectorAll("input[name$='.Key']");
+        keyInputs.Length.Should().BeGreaterThan(1, "AddHeader must append a new row to the form");
+    }
+
+    private HttpClient CreateAdminClient() =>
+        _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+
+    private static async Task<string> HarvestAntiforgeryAsync(
+        HttpClient client,
+        string path,
+        CancellationToken ct
+    )
+    {
+        var response = await client.GetAsync(path, ct);
+        response.EnsureSuccessStatusCode();
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        return document.QuerySelector("input[name='AntiForgery']")!.GetAttribute("value")!;
     }
 }
