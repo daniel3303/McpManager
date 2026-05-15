@@ -84,4 +84,38 @@ public class McpNamespaceManagerTests : IClassFixture<WebFactoryFixture>
             .CountAsync(s => s.McpServerId == server.Id, ct);
         links.Should().Be(1);
     }
+
+    [Fact]
+    public async Task Create_WithDuplicateSlug_ThrowsApplicationExceptionForSlug()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+
+        var slug = $"dup-{Guid.NewGuid():N}";
+        await sut.Create(
+            new McpNamespace
+            {
+                Name = slug,
+                Slug = slug,
+                Description = "",
+            }
+        );
+
+        // ValidateSlugUnique's collision guard (line 199) was uncovered. Two
+        // namespaces sharing a slug would make /mcp/ns/{slug} ambiguous — the
+        // route resolves to whichever row EF returns first. The guard must
+        // reject the second create with a Slug-scoped ApplicationException.
+        var act = async () =>
+            await sut.Create(
+                new McpNamespace
+                {
+                    Name = $"other-{Guid.NewGuid():N}",
+                    Slug = slug,
+                    Description = "",
+                }
+            );
+
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Slug");
+    }
 }
