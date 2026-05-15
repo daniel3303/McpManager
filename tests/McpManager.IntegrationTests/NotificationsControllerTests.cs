@@ -1,4 +1,5 @@
 using System.Net;
+using AngleSharp;
 using AwesomeAssertions;
 using McpManager.Core.Identity;
 using McpManager.Core.Repositories.Identity;
@@ -118,5 +119,56 @@ public class NotificationsControllerTests : IClassFixture<WebFactoryFixture>
 
         var body = await response.Content.ReadAsStringAsync(ct);
         body.Should().Contain(title);
+    }
+
+    [Fact]
+    public async Task PostDelete_WithExistingNotification_RemovesItAndRedirectsToIndex()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid notificationId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var sp = scope.ServiceProvider;
+            var admin = await sp.GetRequiredService<UserRepository>()
+                .GetAll()
+                .FirstAsync(u => u.Email == "admin@mcpmanager.local", ct);
+            var created = await sp.GetRequiredService<NotificationManager>()
+                .Create(admin, title: $"del-{Guid.NewGuid():N}", message: "x");
+            notificationId = created.Id;
+        }
+
+        var indexResp = await client.GetAsync("/Notifications", ct);
+        indexResp.EnsureSuccessStatusCode();
+        var html = await indexResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // Delete (lines 106-122) was uncovered: GetByUser scoping -> found-guard
+        // bypass -> NotificationManager.Delete -> flash + redirect to Index.
+        // Asserting the row is gone pins the per-user delete (a regression
+        // dropping the GetByUser filter would also let users delete others').
+        var response = await client.PostAsync($"/Notifications/Delete/{notificationId}", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<NotificationRepository>();
+        var reloaded = await repo.Get(notificationId);
+        reloaded.Should().BeNull("Delete must remove the notification row");
     }
 }
