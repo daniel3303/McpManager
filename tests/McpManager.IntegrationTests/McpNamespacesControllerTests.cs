@@ -135,4 +135,38 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(ns.Id);
         reloaded!.Name.Should().Be(newName, "Edit POST must persist the new name");
     }
+
+    [Fact]
+    public async Task GetShow_WithExistingId_RendersNamespaceWithMcpEndpoint()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var slug = "ns-" + Guid.NewGuid().ToString("n")[..8];
+        McpNamespace ns;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            ns = await manager.Create(new McpNamespace { Name = "Showcase", Slug = slug });
+        }
+
+        // Show was the largest uncovered member (lines 71-111): it runs four
+        // repository queries (available servers, ns-servers, ns-tools group-by)
+        // and builds the McpEndpoint. Asserting the rendered endpoint pins the
+        // whole data-loading path — a regression in any query throws a 500
+        // instead of the 200 + endpoint string asserted here.
+        var response = await client.GetAsync($"/McpNamespaces/Show/{ns.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain($"/mcp/ns/{slug}");
+        body.Should().Contain("Showcase");
+    }
 }
