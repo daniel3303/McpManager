@@ -142,4 +142,28 @@ public class McpNamespaceManagerTests : IClassFixture<WebFactoryFixture>
         var ex = await act.Should().ThrowAsync<ApplicationException>();
         ex.Which.Property.Should().Be("Name");
     }
+
+    [Fact]
+    public async Task Create_WithBlankSlug_ThrowsApplicationExceptionForSlug()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+
+        // Validate's blank-Slug guard (line 179) was uncovered — prior tests
+        // hit the regex/uniqueness Slug guards but never the empty-Slug branch.
+        // Slug is the /mcp/ns/{slug} route key; an empty one yields an
+        // unreachable namespace endpoint.
+        var act = async () =>
+            await sut.Create(
+                new McpNamespace
+                {
+                    Name = $"ns-{Guid.NewGuid():N}",
+                    Slug = "",
+                    Description = "",
+                }
+            );
+
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Slug");
+    }
 }
