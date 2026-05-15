@@ -1,8 +1,13 @@
 using System.Net;
 using AngleSharp;
 using AwesomeAssertions;
+using McpManager.Core.Data.Models.Mcp;
+using McpManager.Core.Mcp;
+using McpManager.Core.Repositories.Mcp;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests;
@@ -108,6 +113,76 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
             .OpenAsync(req => req.Content(html), ct);
         var keyInputs = document.QuerySelectorAll("input[name$='.Key']");
         keyInputs.Length.Should().BeGreaterThan(1, "AddHeader must append a new row to the form");
+    }
+
+    [Fact]
+    public async Task GetEdit_WithExistingId_RendersFormPrefilledWithServerName()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"edit-{Guid.NewGuid():N}");
+
+        // Edit GET on an existing server is the only path that runs
+        // MapServerToDto and the Form.cshtml with a pre-populated model —
+        // a regression in the mapping or in any asp-for on Form.cshtml
+        // would render the value blank or 500. AngleSharp asserts on the
+        // rendered Name input.
+        var response = await client.GetAsync($"/McpServers/Edit/{server.Id}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        document
+            .QuerySelector("input[name='Name']")!
+            .GetAttribute("value")
+            .Should()
+            .Be(server.Name);
+    }
+
+    [Fact]
+    public async Task PostDelete_WithExistingId_RemovesServerAndRedirectsToIndex()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var server = await SeedHttpServerAsync($"to-delete-{Guid.NewGuid():N}");
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token }
+        );
+
+        // Delete happy path: server exists -> McpServerManager.Delete
+        // (SaveChanges + log) -> 302 to /mcpservers. Asserts both the
+        // redirect and that the row is gone via a fresh repository read,
+        // covering the row-deletion contract the UI depends on.
+        var response = await client.PostAsync($"/McpServers/Delete/{server.Id}", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+        response.Headers.Location!.ToString().Should().EndWithEquivalentOf("/mcpservers");
+
+        using var scope = _factory.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var remaining = await repo.GetAll().AnyAsync(s => s.Id == server.Id, ct);
+        remaining.Should().BeFalse("Delete must remove the row");
+    }
+
+    private async Task<McpServer> SeedHttpServerAsync(string name)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+        return await manager.Create(
+            new McpServer
+            {
+                Name = name,
+                TransportType = McpTransportType.Http,
+                Uri = "https://upstream.invalid/mcp",
+            }
+        );
     }
 
     private HttpClient CreateAdminClient() =>
