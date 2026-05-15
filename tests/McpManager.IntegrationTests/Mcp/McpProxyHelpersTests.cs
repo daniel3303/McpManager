@@ -74,4 +74,20 @@ public class McpProxyHelpersTests
         result.GetProperty("type").GetString().Should().Be("object");
         result.GetProperty("items").GetProperty("type").GetString().Should().Be("string");
     }
+
+    [Fact]
+    public void ConvertArguments_FalseAndNullValues_MapToBoolFalseAndNull()
+    {
+        // ConvertJsonElement's False (line 115) and Null (line 116) arms were
+        // uncovered — prior tests only used true/number/array/object. A
+        // regression collapsing these would forward a JSON false as "False" or
+        // drop nulls, corrupting boolean/optional tool-call arguments.
+        using var doc = JsonDocument.Parse("""{"flag":false,"opt":null}""");
+        var args = doc.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value);
+
+        var result = McpProxyHelpers.ConvertArguments(args);
+
+        result["flag"].Should().Be(false);
+        result["opt"].Should().BeNull();
+    }
 }
