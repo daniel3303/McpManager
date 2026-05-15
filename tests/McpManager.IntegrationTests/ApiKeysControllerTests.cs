@@ -245,4 +245,30 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
         body.Should().Contain($"match-{token}");
         body.Should().NotContain(otherName, "the search filter must exclude non-matches");
     }
+
+    [Fact]
+    public async Task GetShow_WithUnknownId_RedirectsToIndexWithError()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        // Show's not-found branch (lines 64-68) was uncovered. A stale
+        // bookmarked /ApiKeys/Show/{id} link must degrade to a flashed error +
+        // redirect to Index, never a 404/500 — a regression dropping the null
+        // guard would surface a raw error to an admin clicking an old link.
+        var response = await client.GetAsync($"/ApiKeys/Show/{Guid.NewGuid()}", ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response
+            .Headers.Location!.ToString()
+            .Should()
+            .BeEquivalentTo("/apikeys", "Index redirect target (URLs are lowercased)");
+    }
 }
