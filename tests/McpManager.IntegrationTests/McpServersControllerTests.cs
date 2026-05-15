@@ -84,6 +84,40 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostCreate_WithValidHttpDto_PersistsServerAndRedirectsToShow()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var name = $"created-{Guid.NewGuid():N}";
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["Name"] = name,
+                ["TransportType"] = "Http",
+                ["Uri"] = "https://upstream.invalid/mcp",
+            }
+        );
+
+        // Create POST happy path: ModelState valid -> MapDtoToServer ->
+        // McpServerManager.Create -> SyncTools (fails on the invalid host ->
+        // Warning branch) -> 302 to Show. Only the ModelState-invalid branch was
+        // covered before; asserting the persisted row pins that Create actually
+        // ran (a regression rejecting a valid DTO would never persist it).
+        var response = await client.PostAsync("/McpServers/Create", form, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var scope = _factory.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().AnyAsync(s => s.Name == name, ct);
+        created.Should().BeTrue("Create POST must persist the new server");
+    }
+
+    [Fact]
     public async Task PostAddHeader_AppendsRowAndReturnsCustomHeadersPartialView()
     {
         var client = CreateAdminClient();
