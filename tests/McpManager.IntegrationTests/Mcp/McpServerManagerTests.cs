@@ -213,6 +213,33 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         reloaded.McpServerId.Should().Be(serverId);
     }
 
+    [Fact]
+    public async Task CheckHealth_OpenApiUnreachable_SetsLastErrorAndReturnsFalse()
+    {
+        var sut = ResolveServerManager();
+        // CheckHealth writes a server log + notifications keyed on the server,
+        // so it must be persisted first (a detached entity FK-fails on save).
+        var server = await sut.Create(
+            new McpServer
+            {
+                Name = $"openapi-health-{Guid.NewGuid():N}",
+                TransportType = McpTransportType.OpenApi,
+                Uri = "https://api.invalid.invalid/",
+                OpenApiSpecification = "{}",
+            }
+        );
+
+        // The OpenApi branch of CheckHealth (lines 111-113: _openApiExecutor
+        // .CheckHealth -> throw on !healthy) was uncovered; only the Http/Stdio
+        // path was. An unreachable OpenApi base URL must flow into the catch:
+        // LastError set + false returned (a regression skipping the OpenApi
+        // branch would wrongly report the server healthy).
+        var healthy = await sut.CheckHealth(server);
+
+        healthy.Should().BeFalse();
+        server.LastError.Should().NotBeNullOrEmpty("CheckHealth must record the failure reason");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
