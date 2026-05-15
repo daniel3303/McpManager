@@ -159,6 +159,40 @@ public class McpServersControllerTests : IClassFixture<WebFactoryFixture>
     }
 
     [Fact]
+    public async Task PostCreate_StdioAdvancedCommand_MapsCommandAndArgumentsThroughBuildCustom()
+    {
+        var client = CreateAdminClient();
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var name = $"stdio-adv-{Guid.NewGuid():N}";
+        var token = await HarvestAntiforgeryAsync(client, "/McpServers/Create", ct);
+        var formFields = new Dictionary<string, string>
+        {
+            ["AntiForgery"] = token,
+            ["Name"] = name,
+            ["TransportType"] = "Stdio",
+            ["UseAdvancedCommand"] = "true",
+            ["Command"] = "python",
+            ["ArgumentsText"] = "-m\nhttp.server",
+        };
+        var form = new FormUrlEncodedContent(formFields);
+
+        // No controller test exercised MapDtoToServer's Stdio branch (lines
+        // 550-556): the advanced-command ternary -> BuildCustomCommand -> the
+        // Command/Arguments assignment. Asserting the persisted split pins it
+        // (a regression swapping the ternary would npx-ify the command).
+        var response = await client.PostAsync("/McpServers/Create", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var scope = _factory.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
+        created.Command.Should().Be("python");
+        created.Arguments.Should().Equal("-m", "http.server");
+    }
+
+    [Fact]
     public async Task PostCreate_WithValidHttpDto_PersistsServerAndRedirectsToShow()
     {
         var client = CreateAdminClient();
