@@ -162,4 +162,53 @@ public class ApiKeysControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(key.Id);
         reloaded!.IsActive.Should().BeFalse("ToggleActive must flip an active key to inactive");
     }
+
+    [Fact]
+    public async Task PostEdit_WithValidName_RenamesKeyAndReturnsSuccessJson()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        ApiKey key;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<ApiKeyManager>();
+            key = await manager.Create(new ApiKey { Name = $"before-{Guid.NewGuid():N}" });
+        }
+
+        var getResp = await client.GetAsync("/ApiKeys/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var newName = $"after-{Guid.NewGuid():N}";
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string> { ["AntiForgery"] = token, ["Name"] = newName }
+        );
+
+        // Edit POST (lines 122-134) was uncovered: found-guard + ModelState
+        // valid -> ApiKeyManager.Rename -> Json { success, redirect }. Asserting
+        // the persisted rename pins that Rename ran (a regression returning the
+        // success JSON without renaming would silently no-op the edit UI).
+        var response = await client.PostAsync($"/ApiKeys/Edit/{key.Id}", form, ct);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("\"success\":true");
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<ApiKeyRepository>();
+        var reloaded = await repo.Get(key.Id);
+        reloaded!.Name.Should().Be(newName, "Edit POST must persist the rename");
+    }
 }
