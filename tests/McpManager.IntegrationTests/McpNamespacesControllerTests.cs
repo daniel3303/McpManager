@@ -288,4 +288,45 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var reloaded = await repo.Get(ns.Id);
         reloaded.Should().BeNull("Delete must remove the namespace row");
     }
+
+    [Fact]
+    public async Task GetIndex_WithSearchFilter_ReturnsOnlyMatchingNamespace()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = Guid.NewGuid().ToString("n")[..8];
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            await manager.Create(
+                new McpNamespace { Name = $"match-{token}", Slug = $"ns-{token}" }
+            );
+            await manager.Create(
+                new McpNamespace
+                {
+                    Name = $"other-{Guid.NewGuid():N}",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+        }
+
+        // Index (lines 47-67) was entirely uncovered — no test hit the list
+        // page. The Name/Slug Contains filter is the branch worth pinning: a
+        // regression dropping the Where (or ANDing Name & Slug) would also list
+        // the non-matching namespace.
+        var response = await client.GetAsync($"/McpNamespaces?Search={token}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain($"match-{token}");
+        body.Should().NotContain("other-", "the search filter must exclude non-matches");
+    }
 }
