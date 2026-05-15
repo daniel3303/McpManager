@@ -122,4 +122,36 @@ public class McpImportExportManagerTests : IClassFixture<WebFactoryFixture>
         var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
         created.Uri.Should().Be("https://api.example.invalid/mcp");
     }
+
+    [Fact]
+    public async Task Import_WithBasicAuthorizationHeader_DecodesUsernameAndPassword()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var sut = scope.ServiceProvider.GetRequiredService<McpImportExportManager>();
+        var ct = TestContext.Current.CancellationToken;
+
+        var name = $"basic-hdr-{Guid.NewGuid():N}";
+        var b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("alice:s3cret"));
+        var json =
+            "{\"mcpServers\":{\""
+            + name
+            + "\":{\"url\":\"https://api.example.invalid/mcp\",\"headers\":{\"Authorization\":\"Basic "
+            + b64
+            + "\"}}}}";
+
+        // BuildServerFromConfig's Basic-Authorization branch (lines 218-226) was
+        // uncovered — only the Bearer variant had a test. A regression in the
+        // base64 decode or the "user:pass" split would import credentials that
+        // silently fail every upstream call.
+        var result = await sut.Import(json);
+
+        result.Success.Should().BeTrue();
+        result.Imported.Should().BeGreaterThan(0);
+
+        var repo = scope.ServiceProvider.GetRequiredService<McpServerRepository>();
+        var created = await repo.GetAll().FirstAsync(s => s.Name == name, ct);
+        created.Auth.Type.Should().Be(AuthType.Basic);
+        created.Auth.Username.Should().Be("alice");
+        created.Auth.Password.Should().Be("s3cret");
+    }
 }
