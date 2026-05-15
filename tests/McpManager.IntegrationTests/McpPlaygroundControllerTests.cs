@@ -230,4 +230,50 @@ public class McpPlaygroundControllerTests : IClassFixture<WebFactoryFixture>
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task PostExecute_WithExistingServer_InvokesCallToolAndReturnsJsonResult()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        McpServer server;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            server = await manager.Create(
+                new McpServer
+                {
+                    Name = $"pg-exec-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+        }
+
+        var json = new StringContent(
+            "{\"serverId\":\"" + server.Id + "\",\"toolName\":\"noop\",\"arguments\":{}}",
+            System.Text.Encoding.UTF8,
+            "application/json"
+        );
+
+        // Execute's found path (lines 99-100) was uncovered — only the 404 guard
+        // was. It must reach McpServerManager.CallTool and serialize the result
+        // as JSON; CallTool swallows the unreachable-upstream failure into
+        // result.Success=false, so a regression breaking the wiring or the JSON
+        // shape (not the upstream) surfaces here as a non-200 or missing field.
+        var response = await client.PostAsync("/McpPlayground/Execute", json, ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("success");
+    }
 }
