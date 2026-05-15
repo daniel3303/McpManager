@@ -398,4 +398,75 @@ public class McpNamespacesControllerTests : IClassFixture<WebFactoryFixture>
         var stillLinked = nsServerRepo.GetByNamespace(ns).Any(s => s.Id == nsServerId);
         stillLinked.Should().BeFalse("RemoveServer must drop the namespace-server link");
     }
+
+    [Fact]
+    public async Task PostToggleServer_WithLinkedServer_FlipsIsActiveAndReturnsSuccessJson()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        Guid nsServerId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var nsManager = scope.ServiceProvider.GetRequiredService<McpNamespaceManager>();
+            var ns = await nsManager.Create(
+                new McpNamespace
+                {
+                    Name = "Toggle",
+                    Slug = "ns-" + Guid.NewGuid().ToString("n")[..8],
+                }
+            );
+            var srvManager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            var server = await srvManager.Create(
+                new McpServer
+                {
+                    Name = $"tgl-{Guid.NewGuid():N}",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+            var link = await nsManager.AddServer(ns, server);
+            link.IsActive.Should().BeTrue("a freshly linked server defaults to active");
+            nsServerId = link.Id;
+        }
+
+        var getResp = await client.GetAsync("/McpNamespaces/Create", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["nsServerId"] = nsServerId.ToString(),
+                ["isActive"] = "false",
+            }
+        );
+
+        // ToggleServer (lines 278-286) was uncovered: nsServer found-guard ->
+        // NamespaceManager.ToggleServer -> Json success. Asserting the flipped
+        // IsActive pins the state mutation (a regression no-op'ing the toggle
+        // would still return success while leaving the server exposed).
+        var response = await client.PostAsync("/McpNamespaces/ToggleServer", form, ct);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain("\"success\":true");
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<McpNamespaceServerRepository>();
+        var reloaded = await repo.Get(nsServerId);
+        reloaded!.IsActive.Should().BeFalse("ToggleServer must persist the disabled state");
+    }
 }
