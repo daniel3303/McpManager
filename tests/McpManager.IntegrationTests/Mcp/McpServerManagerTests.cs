@@ -401,6 +401,30 @@ public class McpServerManagerTests : IClassFixture<WebFactoryFixture>
         ex.Which.Property.Should().Be("Auth.ApiKeyValue");
     }
 
+    [Fact]
+    public async Task Create_HttpWithBasicAuthAndNoUsername_ThrowsApplicationExceptionForAuthUsername()
+    {
+        var sut = ResolveServerManager();
+
+        var act = async () =>
+            await sut.Create(
+                new McpServer
+                {
+                    Name = "basic-no-username",
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://example.invalid/mcp",
+                    Auth = new Auth { Type = AuthType.Basic, Username = "" },
+                }
+            );
+
+        // ValidateServer's Auth switch (case Basic) was uncovered (#98 pinned
+        // Bearer, #124/#128 ApiKey). A Basic-auth HTTP server must reject a
+        // blank username before persistence — a collapsed guard would send
+        // malformed Basic credentials and 401 every proxied request.
+        var ex = await act.Should().ThrowAsync<ApplicationException>();
+        ex.Which.Property.Should().Be("Auth.Username");
+    }
+
     private McpServerManager ResolveServerManager()
     {
         var scope = _factory.Services.CreateScope();
