@@ -157,4 +157,49 @@ public class McpPlaygroundControllerTests : IClassFixture<WebFactoryFixture>
         body.Should().Contain("search_docs");
         body.Should().Contain("fallback-desc");
     }
+
+    [Fact]
+    public async Task GetIndex_WithActiveServer_RendersServerInSelectList()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var name = $"pg-index-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var manager = scope.ServiceProvider.GetRequiredService<McpServerManager>();
+            await manager.Create(
+                new McpServer
+                {
+                    Name = name,
+                    TransportType = McpTransportType.Http,
+                    Uri = "https://upstream.invalid/mcp",
+                }
+            );
+        }
+
+        // Index's active-server SelectList projection (lines 39-51) was
+        // uncovered — only GetTools/GetToolForm were tested. The page must list
+        // every IsActive server as a <select> option; a regression in the
+        // IsActive filter or the projection would empty the playground picker.
+        var response = await client.GetAsync("/McpPlayground", ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var html = await response.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        document
+            .QuerySelectorAll("option")
+            .Select(o => o.TextContent.Trim())
+            .Should()
+            .Contain(name);
+    }
 }
