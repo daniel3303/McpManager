@@ -1,7 +1,10 @@
+using System.Net;
 using AngleSharp;
 using AwesomeAssertions;
+using McpManager.Core.Repositories;
 using McpManager.IntegrationTests.Fixtures;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace McpManager.IntegrationTests;
@@ -47,5 +50,60 @@ public class AdminSettingsControllerTests : IClassFixture<WebFactoryFixture>
             .GetAttribute("value")
             .Should()
             .Be("3");
+    }
+
+    [Fact]
+    public async Task PostIndex_WithValidSettings_PersistsValuesAndRedirects()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var getResp = await client.GetAsync("/AdminSettings", ct);
+        getResp.EnsureSuccessStatusCode();
+        var html = await getResp.Content.ReadAsStringAsync(ct);
+        var document = await BrowsingContext
+            .New(Configuration.Default)
+            .OpenAsync(req => req.Content(html), ct);
+        var token = document
+            .QuerySelector("form input[name='AntiForgery']")!
+            .GetAttribute("value")!;
+        var form = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["AntiForgery"] = token,
+                ["McpConnectionTimeoutSeconds"] = "200",
+                ["McpRetryAttempts"] = "7",
+            }
+        );
+
+        // Index POST happy path (lines 44-67) was uncovered — only GET was. A
+        // regression short-circuiting before SaveChanges would 302 but discard
+        // the operator's timeout/retry edits, silently keeping stale values.
+        var response = await client.PostAsync("/AdminSettings", form, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.Found);
+
+        using var verify = _factory.Services.CreateScope();
+        var repo = verify.ServiceProvider.GetRequiredService<AppSettingsRepository>();
+        var saved = await repo.Get(1);
+        try
+        {
+            saved!.McpConnectionTimeoutSeconds.Should().Be(200);
+            saved.McpRetryAttempts.Should().Be(7);
+        }
+        finally
+        {
+            // AppSettings is a shared singleton row (Id = 1) seeded to 120/3;
+            // restore it so the sibling GET test stays isolated from this POST.
+            saved!.McpConnectionTimeoutSeconds = 120;
+            saved.McpRetryAttempts = 3;
+            await repo.SaveChanges();
+        }
     }
 }
