@@ -456,4 +456,49 @@ public class UsersControllerTests : IClassFixture<WebFactoryFixture>
         var claims = await users.GetClaimsAsync(created!);
         claims.Should().Contain(c => c.Type == "Users", "the selected claim must be granted");
     }
+
+    [Fact]
+    public async Task GetIndex_WithSearchFilter_ReturnsOnlyMatchingUser()
+    {
+        var client = _factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = true,
+            }
+        );
+        var ct = TestContext.Current.CancellationToken;
+        await _factory.SignInAsAdminAsync(client, ct);
+
+        var token = Guid.NewGuid().ToString("n")[..8];
+        var matchEmail = $"match-{token}@example.com";
+        var otherEmail = $"other-{Guid.NewGuid():N}@example.com";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            foreach (var (given, email) in new[] { ($"S{token}", matchEmail), ("Zzz", otherEmail) })
+            {
+                var u = new User
+                {
+                    GivenName = given,
+                    Surname = "U",
+                    Email = email,
+                    UserName = email,
+                    IsActive = true,
+                    EmailConfirmed = true,
+                };
+                (await users.CreateAsync(u, "Passw0rd!")).Succeeded.Should().BeTrue();
+            }
+        }
+
+        // Index's search-filter Where (lines 45-52) was uncovered. The filter
+        // matches GivenName/Surname/Email case-insensitively; a regression
+        // dropping the Where would leak every user into a filtered admin view.
+        var response = await client.GetAsync($"/Users?Search={token}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        body.Should().Contain(matchEmail);
+        body.Should().NotContain(otherEmail, "the search filter must exclude non-matches");
+    }
 }
