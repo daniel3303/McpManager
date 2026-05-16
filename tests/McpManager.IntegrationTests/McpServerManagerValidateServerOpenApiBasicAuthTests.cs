@@ -16,7 +16,7 @@ public class McpServerManagerValidateServerOpenApiBasicAuthTests : IClassFixture
     public McpServerManagerValidateServerOpenApiBasicAuthTests(WebFactoryFixture factory) =>
         _factory = factory;
 
-    [Fact(Skip = "GH-332 — ValidateServer skips auth validation for OpenApi transport")]
+    [Fact]
     public async Task Create_OpenApiServerBasicAuthBlankUsername_RejectsLikeHttpTransport()
     {
         using var scope = _factory.Services.CreateScope();

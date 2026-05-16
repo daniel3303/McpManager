@@ -557,6 +557,12 @@ public class McpServerManager
                     "OpenApiSpecification"
                 );
             }
+
+            // OpenApi consumes server.Auth identically to HTTP/SSE via
+            // OpenApiToolExecutor.ConfigureAuth, so apply the same
+            // completeness checks here instead of silently accepting
+            // blank credentials.
+            ValidateAuthCompleteness(server.Auth);
         }
         else if (server.TransportType is McpTransportType.Http or McpTransportType.Sse)
         {
@@ -576,45 +582,7 @@ public class McpServerManager
                 );
             }
 
-            switch (server.Auth.Type)
-            {
-                case AuthType.Basic:
-                    if (string.IsNullOrWhiteSpace(server.Auth.Username))
-                    {
-                        throw new ApplicationException(
-                            "Username is required for Basic authentication",
-                            "Auth.Username"
-                        );
-                    }
-                    break;
-
-                case AuthType.Bearer:
-                    if (string.IsNullOrWhiteSpace(server.Auth.Token))
-                    {
-                        throw new ApplicationException(
-                            "Token is required for Bearer authentication",
-                            "Auth.Token"
-                        );
-                    }
-                    break;
-
-                case AuthType.ApiKey:
-                    if (string.IsNullOrWhiteSpace(server.Auth.ApiKeyName))
-                    {
-                        throw new ApplicationException(
-                            "API key name is required for ApiKey authentication",
-                            "Auth.ApiKeyName"
-                        );
-                    }
-                    if (string.IsNullOrWhiteSpace(server.Auth.ApiKeyValue))
-                    {
-                        throw new ApplicationException(
-                            "API key value is required for ApiKey authentication",
-                            "Auth.ApiKeyValue"
-                        );
-                    }
-                    break;
-            }
+            ValidateAuthCompleteness(server.Auth);
         }
         else
         {
@@ -625,6 +593,52 @@ public class McpServerManager
                     "Command"
                 );
             }
+        }
+    }
+
+    // Shared auth-completeness checks for every transport that consumes
+    // server.Auth (HTTP, SSE, OpenApi). Keeping this in one place stops
+    // a transport branch from silently accepting blank credentials.
+    private void ValidateAuthCompleteness(Auth auth)
+    {
+        switch (auth.Type)
+        {
+            case AuthType.Basic:
+                if (string.IsNullOrWhiteSpace(auth.Username))
+                {
+                    throw new ApplicationException(
+                        "Username is required for Basic authentication",
+                        "Auth.Username"
+                    );
+                }
+                break;
+
+            case AuthType.Bearer:
+                if (string.IsNullOrWhiteSpace(auth.Token))
+                {
+                    throw new ApplicationException(
+                        "Token is required for Bearer authentication",
+                        "Auth.Token"
+                    );
+                }
+                break;
+
+            case AuthType.ApiKey:
+                if (string.IsNullOrWhiteSpace(auth.ApiKeyName))
+                {
+                    throw new ApplicationException(
+                        "API key name is required for ApiKey authentication",
+                        "Auth.ApiKeyName"
+                    );
+                }
+                if (string.IsNullOrWhiteSpace(auth.ApiKeyValue))
+                {
+                    throw new ApplicationException(
+                        "API key value is required for ApiKey authentication",
+                        "Auth.ApiKeyValue"
+                    );
+                }
+                break;
         }
     }
 }
