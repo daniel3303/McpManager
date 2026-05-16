@@ -250,7 +250,11 @@ public class OpenApiSpecParser
             {
                 if (val is JsonValue jsonVal)
                 {
-                    enumValues.Add(jsonVal.ToString());
+                    // Preserve the enum value's JSON kind (number/bool/string).
+                    // jsonVal.ToString() coerces everything to a string, which
+                    // makes an integer schema declare enum:["1","2"] — Claude's
+                    // tool-call validator then rejects the numeric argument.
+                    enumValues.Add(JToken.Parse(jsonVal.ToJsonString()));
                 }
             }
             if (enumValues.Any())
