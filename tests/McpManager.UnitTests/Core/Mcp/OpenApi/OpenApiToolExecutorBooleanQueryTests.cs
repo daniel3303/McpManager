@@ -10,7 +10,7 @@ namespace McpManager.UnitTests.Core.Mcp.OpenApi;
 
 public class OpenApiToolExecutorBooleanQueryTests
 {
-    [Fact(Skip = "GH-330 — OpenApiToolExecutor serializes boolean query args as .NET \"True\"")]
+    [Fact]
     public async Task Execute_BooleanQueryArgument_SerializesAsLowercaseTrue()
     {
         HttpRequestMessage seenRequest = null;
