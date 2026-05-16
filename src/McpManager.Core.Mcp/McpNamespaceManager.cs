@@ -179,7 +179,10 @@ public class McpNamespaceManager
             throw new ApplicationException("Slug is required", "Slug");
         }
 
-        if (!Regex.IsMatch(ns.Slug, @"^[a-z0-9][a-z0-9-]*$"))
+        // \A...\z anchors the whole string. Plain $ also matches before a
+        // terminating \n, so ^...$ would wrongly accept a slug ending in a
+        // newline — slugs route URLs, so a trailing \n enables route drift.
+        if (!Regex.IsMatch(ns.Slug, @"\A[a-z0-9][a-z0-9-]*\z"))
         {
             throw new ApplicationException(
                 "Slug must contain only lowercase letters, numbers, and hyphens, and start with a letter or number",
