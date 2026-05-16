@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using Equibles.Core.AutoWiring;
@@ -81,6 +82,21 @@ public class OpenApiToolExecutor
         return (int)response.StatusCode < 500;
     }
 
+    // Serialize a path/query argument in its OpenAPI/JSON canonical form.
+    // .NET's default ToString() yields "True"/"False" for booleans and
+    // culture-sensitive text for numbers; OpenAPI wire form is lowercase
+    // booleans and invariant-culture numbers.
+    private static string FormatParameterValue(object value)
+    {
+        return value switch
+        {
+            null => "",
+            bool b => b ? "true" : "false",
+            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? "",
+        };
+    }
+
     private string ResolvePathParameters(
         string path,
         List<ParameterMetadata> parameters,
@@ -93,7 +109,7 @@ public class OpenApiToolExecutor
             {
                 path = path.Replace(
                     $"{{{param.Name}}}",
-                    Uri.EscapeDataString(value?.ToString() ?? "")
+                    Uri.EscapeDataString(FormatParameterValue(value))
                 );
             }
         }
@@ -111,7 +127,7 @@ public class OpenApiToolExecutor
             if (arguments.TryGetValue(param.Name, out var value) && value != null)
             {
                 queryParams.Add(
-                    $"{Uri.EscapeDataString(param.Name)}={Uri.EscapeDataString(value.ToString())}"
+                    $"{Uri.EscapeDataString(param.Name)}={Uri.EscapeDataString(FormatParameterValue(value))}"
                 );
             }
         }
