@@ -17,6 +17,7 @@ Manage multiple upstream MCP (Model Context Protocol) servers, sync their tools,
 ![MCP](https://img.shields.io/badge/MCP-v0.6-blue)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite)
 ![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Yes-green)
+[![SafeSkill 89/100](https://img.shields.io/badge/SafeSkill-89%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/daniel3303-mcpmanager)
 
 ---
 
