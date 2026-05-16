@@ -7,7 +7,7 @@ namespace McpManager.UnitTests.Core.Mcp.OpenApi;
 
 public class OpenApiSpecParserIntegerEnumTests
 {
-    [Fact(Skip = "GH-328 — OpenApiSpecParser stringifies integer enum values")]
+    [Fact]
     public void ParseSpec_IntegerParamEnum_EmitsNumericEnumValuesNotStrings()
     {
         // Contract: the generated input schema must faithfully represent the
