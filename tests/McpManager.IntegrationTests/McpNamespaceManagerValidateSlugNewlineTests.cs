@@ -15,7 +15,7 @@ public class McpNamespaceManagerValidateSlugNewlineTests : IClassFixture<WebFact
     public McpNamespaceManagerValidateSlugNewlineTests(WebFactoryFixture factory) =>
         _factory = factory;
 
-    [Fact(Skip = "GH-334 — slug regex $ anchor accepts a trailing newline")]
+    [Fact]
     public async Task Create_SlugWithTrailingNewline_IsRejected()
     {
         using var scope = _factory.Services.CreateScope();
