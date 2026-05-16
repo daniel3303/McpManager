@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [1.1.2] — 2026-05-16
+
+### Fixed
+
+- OpenAPI path and query arguments are now serialized in canonical JSON form. Boolean values were emitted as .NET `True`/`False` instead of `true`/`false`, causing upstream OpenAPI servers to reject calls to OpenAPI-backed tools (GH-330).
+- OpenAPI enum values now preserve their JSON kind. Integer enum values were emitted as JSON strings in the generated tool schema, leading clients to send the wrong types (GH-328).
+- `McpServerManager.ValidateServer` now validates auth completeness for the OpenApi transport, so a server with incomplete auth configuration can no longer be saved and silently fail at call time (GH-332).
+- Namespace slug validation now rejects a trailing newline; the regex `$` anchor previously accepted a slug ending in `\n` (GH-334).
+
 ## [1.1.1] — 2026-05-15
 
 ### Fixed
@@ -71,7 +80,8 @@ Initial public release.
 - Serilog logging to console + rolling files under `data/logs/`.
 - Multi-arch Docker image (`linux/amd64`, `linux/arm64`) published to Docker Hub on tag push.
 
-[Unreleased]: https://github.com/daniel3303/McpManager/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/daniel3303/McpManager/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/daniel3303/McpManager/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/daniel3303/McpManager/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/daniel3303/McpManager/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/daniel3303/McpManager/releases/tag/v1.0.0
