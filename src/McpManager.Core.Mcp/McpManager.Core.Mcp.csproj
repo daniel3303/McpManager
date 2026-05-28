@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.0" />
+    <PackageReference Include="Equibles.Core.AutoWiring" Version="1.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
     <PackageReference Include="Microsoft.OpenApi" Version="3.5.3" />
     <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.5.3" />
