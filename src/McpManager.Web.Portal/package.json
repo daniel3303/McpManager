@@ -23,7 +23,7 @@
         "jquery-validation-unobtrusive": "^4.0.0",
         "moment": "^2.30.1",
         "toastr": "^2.1.4",
-        "tom-select": "^2.4.3"
+        "tom-select": "^2.6.1"
     },
     "devDependencies": {
         "@tailwindcss/postcss": "^4.3.0",
