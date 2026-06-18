@@ -23,7 +23,7 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
@@ -91,7 +91,7 @@ jobs:
         run: dotnet test --solution McpManager.sln --no-build -c Release -- --coverage --coverage-output-format cobertura --report-trx --results-directory $GITHUB_WORKSPACE/coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           files: coverage/**/*.cobertura.xml
