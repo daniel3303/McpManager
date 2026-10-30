@@ -155,7 +155,12 @@ public class McpNamespaceProxyServer
             )
             .ToList();
 
-        return new CallToolResult { Content = content };
+        return new CallToolResult
+        {
+            Content = content,
+            StructuredContent = result.StructuredContent,
+            IsError = result.IsError,
+        };
     }
 
     private async Task<McpNamespace> GetNamespaceFromRoute()

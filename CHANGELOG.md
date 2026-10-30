@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `McpProxyServer` and `McpNamespaceProxyServer` now forward `structuredContent` and `isError` from the upstream tool's successful `CallToolResult` instead of dropping them. Previously only `Content` survived the round trip through `McpServerManager.CallTool`, so a tool call that succeeded at the transport level but returned structured output or a soft `isError` lost that information for every client going through the proxy (GH-376).
+
 ## [1.1.2] — 2026-05-16
 
 ### Fixed

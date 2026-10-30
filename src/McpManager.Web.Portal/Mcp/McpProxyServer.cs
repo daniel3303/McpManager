@@ -125,7 +125,12 @@ public class McpProxyServer
             )
             .ToList();
 
-        return new CallToolResult { Content = content };
+        return new CallToolResult
+        {
+            Content = content,
+            StructuredContent = result.StructuredContent,
+            IsError = result.IsError,
+        };
     }
 
     private string GetApiKeyName()
