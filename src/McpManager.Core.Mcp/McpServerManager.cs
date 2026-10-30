@@ -264,6 +264,8 @@ public class McpServerManager
             {
                 await using var client = await _clientFactory.Create(server);
                 var callResult = await client.CallToolAsync(toolName, arguments);
+                result.StructuredContent = callResult.StructuredContent;
+                result.IsError = callResult.IsError;
 
                 foreach (var content in callResult.Content)
                 {
